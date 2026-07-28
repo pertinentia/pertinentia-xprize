@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Mi Perfil</h1>
+    <p>Información de tu cuenta en Pertinentia</p>
+</div>
+
+<div class="card">
+    <h2>Datos de la Cuenta</h2>
+    <div class="profile-info">
+        <div class="profile-row">
+            <span class="profile-label">Nombre:</span>
+            <span>{{ current_user.full_name }}</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-label">Correo:</span>
+            <span>{{ current_user.email }}</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-label">WhatsApp:</span>
+            <span>{{ current_user.whatsapp or 'No registrado' }}</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-label">Plan actual:</span>
+            <span class="tier-badge tier-{{ current_user.tier | lower }}">{{ current_user.tier }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Preferencias de Comunicación</h2>
+    <p style="color:#4b5563;font-size:0.92rem;margin-top:-4px;">
+        Decide cómo quieres que Pertinentia se comunique contigo. Puedes cambiar esta preferencia en cualquier momento.
+    </p>
+    <div style="margin-top:14px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="mktConsentToggle" {% if current_user.marketing_consent %}checked{% endif %} style="margin-top:3px;width:18px;height:18px;cursor:pointer;">
+            <span>
+                <strong style="display:block;color:#111827;">Recibir comunicaciones promocionales</strong>
+                <span style="color:#6b7280;font-size:0.88rem;">Novedades, recursos gratuitos, promociones de PRO/PREMIUM y tips para tu Centro Evaluador. Enviamos máximo 1-2 correos por semana.</span>
+            </span>
+        </label>
+        <div style="margin-top:10px;padding:10px 12px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;font-size:0.85rem;color:#1e3a8a;">
+            <strong>Siempre recibirás:</strong> correos de servicio (cambios en tu cuenta, recibos, entregas de documentos generados, recuperación de contraseña). Estos son indispensables para el funcionamiento de tu cuenta.
+        </div>
+        <div id="mktSaveStatus" style="margin-top:10px;font-size:0.88rem;min-height:20px;"></div>
+        <button type="button" id="mktSaveBtn" onclick="saveMarketingPreferences()" class="auth-btn" style="max-width:280px;margin-top:6px;">
+            Guardar preferencias
+        </button>
+        {% if current_user.mkt_unsubscribed_at %}
+        <div style="margin-top:10px;font-size:0.82rem;color:#6b7280;">
+            Última baja registrada: {{ current_user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Cambiar Contraseña</h2>
+    <form method="POST" action="/api/user/change_password" class="auth-form" id="changePasswordForm" onsubmit="return validatePasswordChange()">
+        <div class="form-group">
+            <label for="nueva_contraseña">Nueva contraseña</label>
+            <div class="password-wrapper">
+                <input type="password" id="nueva_contraseña" name="nueva_contraseña" required placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                <button type="button" class="eye-toggle" onclick="toggleEye(this)" aria-label="Mostrar contraseña">&#128065;</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="confirmar_contraseña">Confirmar contraseña</label>
+            <div class="password-wrapper">
+                <input type="password" id="confirmar_contraseña" name="confirmar_contraseña" required placeholder="Repite tu nueva contraseña" autocomplete="new-password">
+                <button type="button" class="eye-toggle" onclick="toggleEye(this)" aria-label="Mostrar contraseña">&#128065;</button>
+            </div>
+        </div>
+        <button type="submit" class="auth-btn" style="max-width:300px;">Actualizar Contraseña</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleEye(btn) {
+    var input = btn.previousElementSibling;
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '&#128064;';
+    } else {
+        input.type = 'password';
+        btn.innerHTML = '&#128065;';
+    }
+}
+
+function validatePasswordChange() {
+    var nueva = document.getElementById('nueva_contraseña').value;
+    var confirmar = document.getElementById('confirmar_contraseña').value;
+    if (nueva !== confirmar) {
+        alert('Las contraseñas no coinciden.');
+        return false;
+    }
+    if (nueva.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres.');
+        return false;
+    }
+    return confirm('¿Estás seguro de que deseas cambiar tu contraseña?');
+}
+
+async function saveMarketingPreferences() {
+    var checkbox = document.getElementById('mktConsentToggle');
+    var btn = document.getElementById('mktSaveBtn');
+    var status = document.getElementById('mktSaveStatus');
+    var newValue = checkbox.checked;
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    status.textContent = '';
+    status.style.color = '';
+    try {
+        var resp = await fetch('/api/user/marketing_preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ marketing_consent: newValue })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            if (data.marketing_consent) {
+                status.style.color = '#16a34a';
+                status.textContent = '\u2713 Listo. Recibirás nuestras comunicaciones promocionales.';
+            } else {
+                status.style.color = '#16a34a';
+                status.textContent = '\u2713 Listo. Ya no recibirás correos promocionales. Seguirás recibiendo correos de servicio.';
+            }
+        } else {
+            status.style.color = '#dc2626';
+            status.textContent = data.error || 'No se pudo guardar.';
+        }
+    } catch(e) {
+        status.style.color = '#dc2626';
+        status.textContent = 'Error de conexión. Intenta de nuevo.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Guardar preferencias';
+    }
+}
+</script>
+{% endblock %}

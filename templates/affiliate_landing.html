@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <meta property="og:title" content="PertinentIA EC0301 y 0217.01 — Dise&ntilde;a tu Curso con IA">
+    <meta property="og:description" content="Genera Carta Descriptiva, Instrumentos de Evaluaci&oacute;n, Manuales y Auto-diagn&oacute;stico alineados al EC0301 del CONOCER.">
+    <meta property="og:type" content="website">
+    <meta name="description" content="Genera documentos de capacitaci&oacute;n profesional alineados al EC0301 y 0217.01 del CONOCER con Inteligencia Artificial.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #f0f2f5; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        .afl-nav { display: flex; align-items: center; background: #2d2d2d; border-bottom: 3px solid #FA8072; padding: 0 1.2rem; min-height: 56px; gap: 0.5rem; }
+        .afl-nav-brand { color: #fff; font-weight: 800; font-size: 1rem; text-decoration: none; white-space: nowrap; }
+        .afl-nav-brand span { color: #FA8072; }
+        .afl-nav-tagline { flex: 1; text-align: center; color: rgba(255,255,255,0.7); font-size: 0.82rem; font-weight: 500; letter-spacing: 0.3px; padding: 0 0.5rem; }
+        .afl-nav-actions { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+        .afl-hero { background: linear-gradient(135deg, #2d2d2d 0%, #1a1a2e 100%); color: #fff; padding: 4rem 1.5rem 3rem; text-align: center; }
+        .afl-hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
+        .afl-hero h1 span { color: #FA8072; }
+        .afl-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.75); max-width: 600px; margin: 0 auto 2rem; line-height: 1.6; }
+        .afl-cta { display: inline-block; background: #FA8072; color: #fff; padding: 1rem 2.5rem; border-radius: 10px; font-weight: 700; font-size: 1.05rem; text-decoration: none; transition: all 0.2s; box-shadow: 0 4px 15px rgba(250,128,114,0.4); }
+        .afl-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(250,128,114,0.5); }
+        .afl-badge { display: inline-block; background: rgba(250,128,114,0.15); color: #FA8072; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.5px; }
+        .afl-section { max-width: 900px; margin: 0 auto; padding: 3rem 1.5rem; }
+        .afl-section h2 { font-size: 1.5rem; font-weight: 700; color: #1f2937; text-align: center; margin-bottom: 2rem; }
+        .afl-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .afl-feat { background: #fff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e5e7eb; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+        .afl-feat:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+        .afl-feat .afl-icon { font-size: 2.2rem; margin-bottom: 0.75rem; }
+        .afl-feat h3 { font-size: 1rem; font-weight: 700; color: #374151; margin-bottom: 0.5rem; }
+        .afl-feat p { font-size: 0.85rem; color: #6b7280; line-height: 1.5; }
+        .afl-steps { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+        .afl-step { flex: 1; min-width: 180px; max-width: 220px; text-align: center; }
+        .afl-step-num { width: 40px; height: 40px; border-radius: 50%; background: #FA8072; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; margin-bottom: 0.75rem; }
+        .afl-step h4 { font-size: 0.95rem; font-weight: 700; color: #374151; margin-bottom: 0.35rem; }
+        .afl-step p { font-size: 0.82rem; color: #6b7280; line-height: 1.5; }
+        .afl-compare { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 2rem; }
+        .afl-compare h2 { font-size: 1.5rem; font-weight: 700; color: #1f2937; text-align: center; margin-bottom: 0.5rem; }
+        .afl-compare-sub { text-align: center; color: #6b7280; font-size: 0.88rem; margin-bottom: 1.5rem; }
+        .afl-compare-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .afl-compare-table thead th { background: #2d2d2d; color: #fff; padding: 0.8rem 0.6rem; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
+        .afl-compare-table thead th:first-child { text-align: left; padding-left: 1rem; }
+        .afl-compare-table thead th.afl-th-highlight { background: linear-gradient(135deg, #FA8072, #e5604e); }
+        .afl-compare-table tbody td { padding: 0.6rem; text-align: center; border-bottom: 1px solid #f3f4f6; color: #374151; }
+        .afl-compare-table tbody td:first-child { text-align: left; padding-left: 1rem; font-weight: 600; color: #1f2937; }
+        .afl-compare-table tbody tr:last-child td { border-bottom: none; }
+        .afl-compare-table tbody tr:hover { background: #fafafa; }
+        .afl-check { color: #22c55e; font-weight: 700; }
+        .afl-cross { color: #d1d5db; }
+        .afl-highlight-cell { background: #fff5f4; }
+        .afl-price-row td { font-weight: 800; font-size: 0.95rem; padding-top: 0.8rem; padding-bottom: 0.8rem; border-top: 2px solid #e5e7eb; }
+        .afl-bottom { text-align: center; padding: 2rem 1.5rem 3rem; }
+        .afl-sponsor-note { text-align: center; color: #9ca3af; font-size: 0.78rem; margin-top: 1rem; }
+        .afl-free-tag { display: inline-block; background: #dcfce7; color: #166534; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.78rem; font-weight: 700; margin-top: 1rem; }
+        .afl-free-note { font-size: 0.78rem; color: #6b7280; margin-top: 0.5rem; }
+        @media (max-width: 700px) {
+            .afl-nav { flex-wrap: wrap; padding: 0.6rem 0.8rem; gap: 0.3rem; }
+            .afl-nav-tagline { display: none; }
+            .afl-hero h1 { font-size: 1.6rem; }
+            .afl-hero p { font-size: 0.92rem; }
+            .afl-features { grid-template-columns: 1fr; }
+            .afl-compare-table { font-size: 0.72rem; }
+            .afl-compare-table thead th, .afl-compare-table tbody td { padding: 0.5rem 0.3rem; }
+            .afl-cta { padding: 0.85rem 1.5rem; font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="afl-benefit-banner" style="background:linear-gradient(90deg,#16a34a 0%,#15803d 100%);color:#fff;text-align:center;padding:0.7rem 1rem;font-weight:700;font-size:0.95rem;letter-spacing:0.3px;box-shadow:0 2px 8px rgba(22,163,74,0.3);">
+        &#127881; Has activado un beneficio del <span style="font-size:1.15rem;">50% de descuento</span> en tu plan PRO &mdash; v&aacute;lido por tiempo limitado
+    </div>
+    <div style="background:#f8fafc;padding:1.25rem 1rem 1.5rem;text-align:center;">
+        <p style="font-size:0.82rem;color:#6b7280;margin:0 0 0.5rem;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;">&#9658; Cono&#769;ce PertinentIA en 60 segundos</p>
+        <video id="aflPromoVideo" controls preload="none" playsinline poster="{{ url_for('static', filename='videos/pertinentia_promo_poster.jpg') }}" style="max-width:560px;width:100%;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.15);background:#000;">
+            <source src="{{ url_for('static', filename='videos/pertinentia_promo.mp4') }}" type="video/mp4">
+            Tu navegador no soporta video HTML5.
+        </video>
+        <div style="margin-top:1.1rem;">
+            <a href="/registro?ref={{ ref_id }}" class="afl-cta">Crear Cuenta y Generar Carta Descriptiva Gratis</a>
+            <div class="afl-free-tag">Plan FREE &mdash; Sin tarjeta de cr&eacute;dito</div>
+            <div class="afl-free-note">Genera, descarga y eval&uacute;a tu primer documento sin costo</div>
+        </div>
+    </div>
+    <script>
+    (function(){
+        var v = document.getElementById('aflPromoVideo');
+        if(!v) return;
+        var sent = false;
+        v.addEventListener('play', function(){
+            if(sent) return; sent = true;
+            try {
+                fetch('/api/affiliate-video-played', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({sponsor_id: {{ sponsor_id|tojson }}, ref_id: {{ ref_id|tojson }}}),
+                    keepalive: true
+                });
+            } catch(e) {}
+        });
+    })();
+    </script>
+    <nav class="afl-nav">
+        <a href="/" class="afl-nav-brand" style="text-decoration:none;">Pertinent<span>IA</span> EC0301 y 0217.01</a>
+        <div class="afl-nav-tagline">La Plataforma de la Capacitaci&oacute;n Certificada en M&eacute;xico</div>
+        <div class="afl-nav-actions">
+            {% if current_user and current_user.is_authenticated %}
+            <span style="color:rgba(255,255,255,0.7);font-size:0.82rem;font-weight:500;">{{ current_user.full_name }}</span>
+            <span class="tier-badge tier-{{ current_user.tier|lower }}" style="font-size:0.72rem;padding:2px 8px;">{{ current_user.tier }}</span>
+            <a href="/" style="color:#FA8072;font-size:0.82rem;font-weight:600;text-decoration:none;">Ir al Panel &rarr;</a>
+            {% else %}
+            <a href="/login" class="nav-auth-btn nav-login-btn" style="text-decoration:none;">Iniciar Sesi&oacute;n</a>
+            <a href="/registro?ref={{ ref_id }}" class="nav-auth-btn nav-register-btn" style="text-decoration:none;">Registrarse</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="afl-hero">
+        <div class="afl-badge">EC0301 y 0217.01 &bull; Est&aacute;ndares de Competencia CONOCER</div>
+        <h1>Dise&ntilde;a tu Curso con <span>Inteligencia Artificial</span></h1>
+        <p>Genera Carta Descriptiva, Instrumentos de Evaluaci&oacute;n, Manuales y Auto-diagn&oacute;stico alineados al est&aacute;ndar EC0301 del CONOCER, en minutos y con calidad profesional.</p>
+    </div>
+
+    <div class="afl-section">
+        <h2>&iquest;Qu&eacute; puedes generar?</h2>
+        <div class="afl-features">
+            <div class="afl-feat">
+                <div class="afl-icon">&#128196;</div>
+                <h3>Carta Descriptiva</h3>
+                <p>Objetivos, t&eacute;cnicas instruccionales, actividades, estrategias de evaluaci&oacute;n, materiales y tiempos.</p>
+            </div>
+            <div class="afl-feat">
+                <div class="afl-icon">&#128203;</div>
+                <h3>Instrumentos de Evaluaci&oacute;n</h3>
+                <p>Evaluaci&oacute;n diagn&oacute;stica, formativa, sumativa, de satisfacci&oacute;n y hojas de respuestas.</p>
+            </div>
+            <div class="afl-feat">
+                <div class="afl-icon">&#128214;</div>
+                <h3>Manuales del Participante</h3>
+                <p>Gu&iacute;as completas con contenido t&eacute;cnico, actividades y recursos de apoyo.</p>
+            </div>
+            <div class="afl-feat">
+                <div class="afl-icon">&#9989;</div>
+                <h3>Auto-diagn&oacute;stico</h3>
+                <p>Verifica el cumplimiento de tu curso contra cada criterio del EC0301 con asistencia de IA.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="afl-section" style="padding-top:0;">
+        <h2>&iquest;C&oacute;mo funciona?</h2>
+        <div class="afl-steps">
+            <div class="afl-step">
+                <div class="afl-step-num">1</div>
+                <h4>Crea tu cuenta</h4>
+                <p>Reg&iacute;strate gratis en menos de 1 minuto. Sin tarjeta de cr&eacute;dito.</p>
+            </div>
+            <div class="afl-step">
+                <div class="afl-step-num">2</div>
+                <h4>Elige tu tema</h4>
+                <p>Escribe el tema de tu curso y la IA genera tu Carta Descriptiva.</p>
+            </div>
+            <div class="afl-step">
+                <div class="afl-step-num">3</div>
+                <h4>Descarga gratis</h4>
+                <p>Obt&eacute;n tu primer documento Word editable sin costo.</p>
+            </div>
+            <div class="afl-step">
+                <div class="afl-step-num">4</div>
+                <h4>Desbloquea m&aacute;s</h4>
+                <p>Elige un plan para generar todos los documentos EC0301 sin l&iacute;mites.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="afl-compare">
+        <h2>Compara los Planes</h2>
+        <p class="afl-compare-sub">Elige la opci&oacute;n que mejor se adapte a tu operaci&oacute;n</p>
+        <table class="afl-compare-table">
+            <thead>
+                <tr>
+                    <th>Caracter&iacute;stica</th>
+                    <th>FREE</th>
+                    <th>A la Carta</th>
+                    <th class="afl-th-highlight">PRO Afiliado</th>
+                    <th>PRO</th>
+                    <th>PREMIUM</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Carta Descriptiva</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>IECs (Instrumentos de Evaluaci&oacute;n)</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Manuales + Presentaci&oacute;n</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Auto-diagn&oacute;stico EC0301</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Consultas con IA</td>
+                    <td>3</td>
+                    <td>Por compra</td>
+                    <td class="afl-highlight-cell">Ilimitadas</td>
+                    <td>Ilimitadas</td>
+                    <td>Ilimitadas</td>
+                </tr>
+                <tr>
+                    <td>Descargas</td>
+                    <td>1 gratuita</td>
+                    <td>1 por elemento</td>
+                    <td class="afl-highlight-cell">Ilimitadas</td>
+                    <td>Ilimitadas</td>
+                    <td>Ilimitadas</td>
+                </tr>
+                <tr>
+                    <td>Marca Blanca (sin logo Pertinentia)</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Plantillas PRO</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check afl-highlight-cell">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Centro Evaluador IA</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-cross afl-highlight-cell">&#10007;</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Portafolio de evidencias</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-cross afl-highlight-cell">&#10007;</td>
+                    <td class="afl-cross">&#10007;</td>
+                    <td class="afl-check">&#10003;</td>
+                </tr>
+                <tr>
+                    <td>Cursos incluidos</td>
+                    <td>&mdash;</td>
+                    <td>Por elemento</td>
+                    <td class="afl-highlight-cell" style="font-weight:700;">1 curso completo</td>
+                    <td>1 o 5 cursos</td>
+                    <td>Ilimitados</td>
+                </tr>
+                <tr class="afl-price-row">
+                    <td>Precio</td>
+                    <td style="color:#16a34a;">Gratis</td>
+                    <td>Desde $249</td>
+                    <td class="afl-highlight-cell" style="color:#16a34a;">$500 MXN</td>
+                    <td>Desde $999</td>
+                    <td>$2,997/mes</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="max-width:600px;margin:0 auto;padding:0 1.5rem;">
+        <div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:2px solid #86efac;border-radius:12px;padding:1.5rem;text-align:center;margin-bottom:1.5rem;">
+            <div style="font-size:0.78rem;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;">Precio exclusivo por invitaci&oacute;n</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                <span style="font-size:1.3rem;color:#9ca3af;text-decoration:line-through;">$999 MXN</span>
+                <span style="font-size:2rem;font-weight:800;color:#166534;">$500 MXN</span>
+            </div>
+            <div style="font-size:0.85rem;color:#374151;margin-top:0.5rem;font-weight:600;">Pago &uacute;nico por curso &mdash; Plan PRO completo</div>
+            <div style="font-size:0.78rem;color:#6b7280;margin-top:0.25rem;">Generaci&oacute;n integral + Marca Blanca + Plantillas PRO</div>
+        </div>
+    </div>
+
+    <div class="afl-bottom">
+        <a href="/registro?ref={{ ref_id }}" class="afl-cta">Crear Cuenta y Generar Carta Descriptiva Gratis</a>
+        <p class="afl-sponsor-note">Invitaci&oacute;n de {{ sponsor.full_name.split(' ')[0] if sponsor.full_name else 'un afiliado' }}</p>
+    </div>
+</body>
+</html>

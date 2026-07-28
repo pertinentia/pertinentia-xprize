@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Documentos Generados</h1>
+    <p>Descarga los documentos editables generados por la IA</p>
+</div>
+
+<div class="card" id="docsCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <h2 style="margin:0;">Mis Documentos <span class="badge" id="docsCount">{{ gen_docs|length }}</span></h2>
+        {% if gen_docs %}
+        <div class="bulk-actions" id="bulkActions" style="display:flex;align-items:center;gap:0.5rem;">
+            <label style="font-size:0.78rem;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:0.3rem;">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"> Seleccionar todos
+            </label>
+            <button class="bulk-delete-btn" id="bulkDeleteBtn" onclick="deleteBulk()" style="display:none;">Eliminar Seleccionados</button>
+        </div>
+        {% endif %}
+    </div>
+    {% if gen_docs %}
+    <ul class="doc-list" id="docList">
+        {% for doc in gen_docs %}
+        <li id="doc-{{ loop.index }}">
+            <input type="checkbox" class="doc-checkbox" data-filename="{{ doc }}" onchange="updateBulkBtn()">
+            <span class="doc-icon">{{ 'PPTX' if doc.endswith('.pptx') else 'DOC' }}</span>
+            {% if current_user.is_pro %}
+            <a href="/download/{{ doc }}" class="doc-name" style="text-decoration:none;font-weight:500;flex:1;">{{ doc|strip_user_prefix }}</a>
+            {% elif current_user.tier == 'FREE' and free_downloads_used < 1 %}
+            <a href="/download/{{ doc }}" class="doc-name free-download-link" style="text-decoration:none;font-weight:500;flex:1;" onclick="return handleFreeDownload(this);">{{ doc|strip_user_prefix }}</a>
+            {% else %}
+            <span class="doc-name doc-locked" style="flex:1;">{{ doc|strip_user_prefix }} <span class="doc-locked-icon">&#128274;</span></span>
+            {% endif %}
+            <span class="doc-type">{{ doc.split('.')[-1] | upper }}</span>
+            <button class="delete-btn" onclick="deleteDoc('{{ doc }}', this)" title="Eliminar">&#128465;</button>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if not current_user.is_pro and free_downloads_used >= 1 %}
+    <div style="text-align:center;padding:1rem;margin-top:0.5rem;background:#fff5f4;border-radius:8px;border:1px solid #fcd5d0;">
+        <p style="color:#9b4d43;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">&#128274; Plan FREE — Descargas agotadas</p>
+        <p style="color:#6b7280;font-size:0.78rem;">Ya usaste tu descarga gratuita. Adquiere una licencia para descargar m&aacute;s documentos.</p>
+        <a href="/precios" style="display:inline-block;margin-top:0.5rem;padding:0.5rem 1.5rem;background:#7c3aed;color:white;border-radius:6px;text-decoration:none;font-size:0.85rem;font-weight:600;">Ver Planes y Precios</a>
+    </div>
+    {% elif not current_user.is_pro %}
+    <div style="text-align:center;padding:1rem;margin-top:0.5rem;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
+        <p style="color:#1e40af;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">&#127873; Plan FREE — 1 descarga gratuita disponible</p>
+        <p style="color:#6b7280;font-size:0.78rem;">Puedes descargar 1 documento gratis. Para descargas ilimitadas, adquiere una licencia.</p>
+        <a href="/precios" style="display:inline-block;margin-top:0.5rem;padding:0.5rem 1.5rem;background:#7c3aed;color:white;border-radius:6px;text-decoration:none;font-size:0.85rem;font-weight:600;">Ver Planes y Precios</a>
+    </div>
+    {% endif %}
+    {% else %}
+    <div id="emptyState" style="text-align:center;padding:2rem;">
+        <h2 style="color:#94a3b8;">Aún no hay documentos generados</h2>
+        <p>Inicia en cualquier módulo para generar tu primer documento editable.</p>
+        <a href="/elemento/1" class="gen-btn" style="margin-top:1rem;">Crear Carta Descriptiva &rarr;</a>
+    </div>
+    {% endif %}
+</div>
+
+<div style="margin-top:1rem;padding:0.75rem 1rem;background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:8px;font-size:0.78rem;color:#475569;">
+    <strong style="color:#1e40af;">&#128196; Pol&iacute;tica de Retenci&oacute;n de Documentos</strong>
+    <ul style="margin:0.4rem 0 0 1.2rem;padding:0;line-height:1.6;">
+        <li><strong>Plan FREE:</strong> Documentos disponibles por 7 d&iacute;as. 1 descarga gratuita incluida.</li>
+        <li><strong>Plan PRO:</strong> Documentos disponibles durante la vigencia de tu suscripci&oacute;n por proyecto.</li>
+        <li><strong>Plan PREMIUM:</strong> Documentos disponibles durante la vigencia de tu suscripci&oacute;n mensual o anual.</li>
+    </ul>
+    <p style="margin:0.4rem 0 0;color:#64748b;font-size:0.72rem;">Tus documentos se almacenan de forma segura y persistente. Al cancelar tu suscripci&oacute;n, los documentos se conservan por 30 d&iacute;as adicionales.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleFreeDownload(linkEl) {
+    var allLinks = document.querySelectorAll('.free-download-link');
+    allLinks.forEach(function(el) {
+        if (el !== linkEl) {
+            var li = el.closest('li');
+            if (li) {
+                var docName = el.textContent;
+                var span = document.createElement('span');
+                span.className = 'doc-name doc-locked';
+                span.style.flex = '1';
+                span.innerHTML = docName + ' <span class="doc-locked-icon">&#128274;</span>';
+                el.replaceWith(span);
+            }
+        }
+    });
+    return true;
+}
+
+function toggleSelectAll(master) {
+    var boxes = document.querySelectorAll('.doc-checkbox');
+    boxes.forEach(function(cb) { cb.checked = master.checked; });
+    updateBulkBtn();
+}
+
+function updateBulkBtn() {
+    var checked = document.querySelectorAll('.doc-checkbox:checked');
+    var btn = document.getElementById('bulkDeleteBtn');
+    if (checked.length > 0) {
+        btn.style.display = 'inline-block';
+        btn.textContent = 'Eliminar Seleccionados (' + checked.length + ')';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+async function deleteBulk() {
+    var checked = document.querySelectorAll('.doc-checkbox:checked');
+    if (checked.length === 0) return;
+    if (!confirm('¿Eliminar ' + checked.length + ' documento(s)?')) return;
+    var filenames = [];
+    checked.forEach(function(cb) { filenames.push(cb.dataset.filename); });
+    try {
+        var resp = await fetch('/api/delete_bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ filenames: filenames })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            data.deleted.forEach(function(fname) {
+                var cbs = document.querySelectorAll('.doc-checkbox');
+                cbs.forEach(function(cb) {
+                    if (cb.dataset.filename === fname) {
+                        var li = cb.closest('li');
+                        if (li) li.remove();
+                    }
+                });
+            });
+            var list = document.getElementById('docList');
+            var remaining = list ? list.querySelectorAll('li').length : 0;
+            document.getElementById('docsCount').textContent = remaining;
+            document.getElementById('selectAll').checked = false;
+            updateBulkBtn();
+            if (remaining === 0) {
+                document.getElementById('docsCard').innerHTML =
+                    '<div style="text-align:center;padding:3rem;">' +
+                    '<h2 style="color:#94a3b8;">Aún no hay documentos generados</h2>' +
+                    '<p>Inicia en cualquier módulo para generar tu primer documento editable.</p>' +
+                    '<a href="/elemento/1" class="gen-btn" style="margin-top:1rem;">Crear Carta Descriptiva &rarr;</a></div>';
+            }
+        }
+    } catch(e) {}
+}
+
+async function deleteDoc(filename, btn) {
+    if (!confirm('¿Eliminar este documento?')) return;
+    try {
+        var resp = await fetch('/delete/' + encodeURIComponent(filename), {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var li = btn.closest('li');
+            if (li) li.remove();
+            var list = document.getElementById('docList');
+            var remaining = list ? list.querySelectorAll('li').length : 0;
+            document.getElementById('docsCount').textContent = remaining;
+            updateBulkBtn();
+            if (remaining === 0) {
+                document.getElementById('docsCard').innerHTML =
+                    '<div style="text-align:center;padding:3rem;">' +
+                    '<h2 style="color:#94a3b8;">Aún no hay documentos generados</h2>' +
+                    '<p>Inicia en cualquier módulo para generar tu primer documento editable.</p>' +
+                    '<a href="/elemento/1" class="gen-btn" style="margin-top:1rem;">Crear Carta Descriptiva &rarr;</a></div>';
+            }
+        }
+    } catch(e) {}
+}
+</script>
+{% endblock %}

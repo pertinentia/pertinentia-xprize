@@ -1,0 +1,2295 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Panel de Administración</h1>
+    <p>Centro de Control — Usuarios, Telemetría y Comisiones</p>
+<div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:1rem 1.4rem;margin-bottom:1rem;display:flex;gap:2rem;flex-wrap:wrap;">
+    <div><strong style="font-size:1.4rem;color:#1e3a8a;">{{ stats_docentes_unicos }}</strong><br><span style="font-size:0.8rem;color:#374151;">Docentes con curso generado</span></div>
+    <div><strong style="font-size:1.4rem;color:#1e3a8a;">{{ stats_cursos_reales }}</strong><br><span style="font-size:0.8rem;color:#374151;">Cursos completos generados</span></div>
+    <div><strong style="font-size:1.4rem;color:#1e3a8a;">{{ stats_total_participantes }}</strong><br><span style="font-size:0.8rem;color:#374151;">Alumnos impactados (acumulado)</span></div>
+</div>
+</div>
+
+<style>
+.admin-section { margin-bottom: 2rem; }
+.admin-section h2 { font-size: 1.1rem; color: #374151; margin-bottom: 1rem; }
+.referidos-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.referidos-modal-content { background: #fff; border-radius: 12px; padding: 1.5rem; max-width: 600px; width: 90%; max-height: 70vh; overflow-y: auto; }
+.referidos-modal-content h3 { margin-bottom: 1rem; color: #374151; }
+.referidos-modal-content table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.referidos-modal-content th { background: #f9fafb; text-align: left; padding: 0.5rem; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; }
+.referidos-modal-content td { padding: 0.5rem; border-bottom: 1px solid #f3f4f6; }
+.close-modal-btn { background: #6b7280; color: #fff; border: none; padding: 0.5rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; margin-top: 1rem; }
+.token-detail { font-size: 0.72rem; color: #6b7280; line-height: 1.4; }
+.payout-select { padding: 4px 6px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 0.78rem; cursor: pointer; }
+.cfdi-link { color: #2563eb; text-decoration: underline; font-size: 0.78rem; margin-right: 0.4rem; cursor: pointer; }
+.payout-liquidado { color: #16a34a; font-weight: 700; }
+.payout-revision { color: #d97706; font-weight: 600; }
+.payout-pendiente { color: #9ca3af; }
+.ref-btn { background: #7c3aed; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; }
+.ref-btn:hover { opacity: 0.85; }
+</style>
+
+<div class="admin-section">
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2 style="margin:0;">Módulo 1 — Usuarios y Costos <span class="badge" id="userCount">{{ total_users }}</span></h2>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+                <a href="/api/admin/export_users" class="csv-export-btn" title="Excluye usuarios marcados como rebotados">Exportar CSV (limpio)</a>
+                <a href="/api/admin/export_bounced" class="csv-export-btn" style="background:#fee2e2;color:#991b1b;" title="Solo usuarios con rebote duro o blando">Exportar Rebotados</a>
+                <a href="/api/admin/export_lead_segmentation" class="csv-export-btn" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;" title="CSV con segmentación automática (A-F) basada en actividad EN VIVO: archivos generados, descargas, vistas a precios, generaciones fallidas. Listo para campañas WhatsApp.">Análisis Lead (CSV)</a>
+                <a href="/admin/atribucion" class="csv-export-btn" style="background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;" title="Modelo de medición UTM: ranking de anuncios, conjuntos y campañas por usuarios atraídos, con % de activación y conversión a PRO.">📊 Atribución Campañas</a>
+                <a href="/admin/pexels" class="csv-export-btn" style="background:#dcfce7;color:#166534;border:1px solid #86efac;" title="Uso del banco de fotos profesionales Pexels en presentaciones: consumo mensual y por hora vs. límites del plan gratuito, términos más usados e imágenes recientes.">🖼️ Fotos Pexels</a>
+                <button type="button" class="csv-export-btn" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;cursor:pointer;" title="Reajusta el contador de IDs al MAX(id) actual. El siguiente registro será MAX+1. Útil tras borrar usuarios al final." onclick="resetUserSequence()">Reajustar siguiente ID</button>
+            </div>
+            <script>
+            async function resetUserSequence(){
+                if (!confirm('¿Reajustar el contador de IDs?\n\nEl siguiente usuario que se registre tomará el número MAX(id)+1 según los usuarios actuales en BD. No reutiliza IDs intermedios (PostgreSQL no lo permite por integridad).')) return;
+                try {
+                    var r = await fetch('/api/admin/users/reset-sequence', {method:'POST', headers:{'Content-Type':'application/json'}});
+                    var j = await r.json();
+                    if (j.success) {
+                        alert('Listo.\n\nMAX(id) actual: ' + j.max_id_actual + '\nSequence anterior: ' + j.sequence_anterior + '\nSiguiente ID será: ' + j.siguiente_id_sera);
+                    } else {
+                        alert('Error: ' + (j.error || 'desconocido'));
+                    }
+                } catch(e) { alert('Error de red: ' + e.message); }
+            }
+            </script>
+        </div>
+        <form id="userFiltersBar" method="get" action="#mod1" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;padding:0.6rem 0.75rem;margin-bottom:0.6rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:0.85rem;">
+            <input type="search" id="userSearchInput" name="q" value="{{ user_filters.q or '' }}" placeholder="🔍 Buscar por ID, nombre, correo o WhatsApp…" style="flex:1;min-width:240px;padding:0.45rem 0.7rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.88rem;" autocomplete="off">
+            <select id="userTierFilter" name="tier" style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+                <option value="">Plan: Todos</option>
+                {% for t in ['FREE','PRO','PREMIUM','MULTI','PRO_MULTI'] %}
+                <option value="{{ t }}" {% if user_filters.tier == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+            <select id="userWaFilter" name="wa" style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+                <option value="">WhatsApp: Todos</option>
+                <option value="con" {% if user_filters.wa == 'con' %}selected{% endif %}>Con WhatsApp</option>
+                <option value="sin" {% if user_filters.wa == 'sin' %}selected{% endif %}>Sin WhatsApp</option>
+            </select>
+            <select id="userMktFilter" name="mkt" style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+                <option value="">Marketing: Todos</option>
+                <option value="si" {% if user_filters.mkt == 'si' %}selected{% endif %}>Permite Push/WA</option>
+                <option value="no" {% if user_filters.mkt == 'no' %}selected{% endif %}>Opt-out / Solo servicio</option>
+            </select>
+            <select id="userActFilter" name="act" style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+                <option value="">Actividad: Todos</option>
+                <option value="con_ia" {% if user_filters.act == 'con_ia' %}selected{% endif %}>Con consumo IA</option>
+                <option value="sin_ia" {% if user_filters.act == 'sin_ia' %}selected{% endif %}>Sin consumo IA</option>
+                <option value="rebote" {% if user_filters.act == 'rebote' %}selected{% endif %}>Con rebote email</option>
+                <option value="contactado" {% if user_filters.act == 'contactado' %}selected{% endif %}>Ya contactado</option>
+                <option value="no_contactado" {% if user_filters.act == 'no_contactado' %}selected{% endif %}>No contactado aún</option>
+            </select>
+            <button type="submit" style="padding:0.4rem 0.8rem;background:#FA8072;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:600;">Aplicar</button>
+            <a href="/admin-crm#mod1" id="userClearFilters" style="padding:0.4rem 0.7rem;background:#fff;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:0.82rem;color:#374151;text-decoration:none;">Limpiar</a>
+            <span id="userFilterCount" style="margin-left:auto;color:{% if user_filters.q or user_filters.tier or user_filters.wa or user_filters.mkt or user_filters.act %}#1e40af{% else %}#6b7280{% endif %};font-size:0.82rem;font-weight:600;">{{ total_users }} usuario{{ 's' if total_users != 1 else '' }}{% if user_filters.q or user_filters.tier or user_filters.wa or user_filters.mkt or user_filters.act %} (filtrado){% endif %}</span>
+        </form>
+        <script>
+        (function(){
+            var form = document.getElementById('userFiltersBar');
+            if (!form) return;
+            ['userTierFilter','userWaFilter','userMktFilter','userActFilter'].forEach(function(id){
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('change', function(){ form.submit(); });
+            });
+            var input = document.getElementById('userSearchInput');
+            if (input) {
+                input.addEventListener('keydown', function(e){
+                    if (e.key === 'Escape') { input.value = ''; form.submit(); }
+                });
+            }
+        })();
+        </script>
+        <div class="admin-table-wrap" style="max-height:70vh;overflow:auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th title="Fecha de registro (zona CDMX)">Registro</th>
+                        <th>Correo</th>
+                        <th>WhatsApp</th>
+                        <th>Plan</th>
+                        <th>Fuente</th>
+                        <th>Consumo IA (Tokens)</th>
+                        <th>Publicidad</th>
+                        <th>Referidos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    {% for user in users %}
+                    <tr id="user-row-{{ user.id }}">
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td title="{{ user.created_at | fmt_cdmx('%d/%m/%Y %H:%M') }} CDMX" style="white-space:nowrap;font-size:0.78rem;color:#374151;">{{ user.created_at | fmt_cdmx('%d/%m/%Y') if user.created_at else '—' }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.whatsapp or '—' }}</td>
+                        <td>
+                            <span class="tier-badge tier-{{ user.tier | lower }}" id="tier-{{ user.id }}">{{ user.tier }}</span>
+                            {% if user.tier == 'PRO' %}
+                            <div id="credits-{{ user.id }}" style="font-size:0.72rem;color:#6b7280;margin-top:3px;font-weight:600;" title="Cr&eacute;ditos PRO restantes (1=PRO 1 Curso, 5=PRO 5 Cursos)">{{ user.pro_courses_remaining or 0 }} cr&eacute;dito{{ 's' if (user.pro_courses_remaining or 0) != 1 else '' }}</div>
+                            {% elif user.tier == 'FREE' and (user.pro_courses_remaining or 0) > 0 %}
+                            <div id="credits-{{ user.id }}" style="font-size:0.7rem;color:#9ca3af;margin-top:3px;font-style:italic;" title="Cr&eacute;ditos PRO preservados de una compra previa (se reactivan al re-promover a PRO)">{{ user.pro_courses_remaining }} cr&eacute;d. en reserva</div>
+                            {% endif %}
+                            {% set _sig = pro_signal_counts.get(user.id) if pro_signal_counts else None %}
+                            {% if _sig and (_sig.agotado or _sig.fallo) %}
+                            <div style="margin-top:4px;font-size:0.68rem;line-height:1.35;">
+                                {% if _sig.agotado %}<span style="display:inline-block;background:#fef3c7;color:#b45309;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-weight:600;" title="Veces que este usuario vio 'Has usado el curso incluido en tu plan PRO'. Es una se&ntilde;al de inter&eacute;s en hacer m&aacute;s cursos: posible oportunidad de escalar de plan (no es un error).">&#8593; {{ _sig.agotado }} escalamiento</span>{% endif %}
+                                {% if _sig.fallo %}<br><span style="display:inline-block;margin-top:2px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-weight:600;" title="Veces que este usuario tuvo un fallo t&eacute;cnico al intentar iniciar su curso PRO. Requiere revisi&oacute;n.">&#9888; {{ _sig.fallo }} fallo t&eacute;cnico</span>{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.referred_by %}
+                            <span style="color:#7c3aed;font-size:0.78rem;font-weight:600;">Referido por {{ referrer_map.get(user.referred_by, 'ID ' ~ user.referred_by) }}</span>
+                            {% else %}
+                            <span style="color:#9ca3af;font-size:0.78rem;">Directo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.chat_usage_count > 0 %}
+                            <div style="font-weight:600;color:#1e40af;font-size:0.85rem;">{{ user.chat_usage_count }} consulta{{ 's' if user.chat_usage_count != 1 else '' }}</div>
+                            {% endif %}
+                            {% set stats = user.get_usage_stats() %}
+                            {% if stats %}
+                            <div class="token-detail">
+                                {% for tier_key, tokens in stats.items() %}
+                                {{ tier_key }}: {{ '{:,}'.format(tokens) }} tks{% if not loop.last %} | {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% elif user.chat_usage_count == 0 %}
+                            <span style="color:#9ca3af;font-size:0.78rem;">Sin consumo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="marketing-toggle" id="mkt-{{ user.id }}" onclick="toggleMarketing({{ user.id }})" title="Alternar consentimiento de publicidad{% if user.mkt_unsubscribed_at %} | Baja: {{ user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC{% endif %}{% if user.marketing_consent_source %} | Última fuente: {{ user.marketing_consent_source }}{% endif %}">
+                                {% if user.marketing_consent %}
+                                <span style="color:#16a34a;">&#9989; Permite Push/Wa</span>
+                                {% if user.marketing_consent_source == 'SIGNUP' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#dcfce7;color:#166534;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Aceptó al registrarse (T&C + Aviso de Privacidad)">SIGNUP</span>
+                                {% elif user.marketing_consent_source == 'USER' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Reactivado por el usuario desde su perfil">by User</span>
+                                {% elif user.marketing_consent_source == 'ADMIN' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#e5e7eb;color:#374151;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Activado por administrador">by Admin</span>
+                                {% endif %}
+                                {% else %}
+                                <span style="color:#dc2626;">&#128683; Solo Servicio / Opt-Out</span>
+                                {% if user.marketing_consent_source == 'USER' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Baja solicitada por el usuario desde su perfil{% if user.mkt_unsubscribed_at %} — {{ user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC{% endif %}">by User</span>
+                                {% elif user.marketing_consent_source == 'ADMIN' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#e5e7eb;color:#374151;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Baja registrada por administrador{% if user.mkt_unsubscribed_at %} — {{ user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC{% endif %}">by Admin</span>
+                                {% elif user.marketing_consent_source == 'AUTO' %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Baja automática del sistema{% if user.mkt_unsubscribed_at %} — {{ user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC{% endif %}">AUTO</span>
+                                {% elif user.mkt_unsubscribed_at %}<span style="display:inline-block;margin-left:4px;padding:1px 6px;background:#f3f4f6;color:#6b7280;border-radius:8px;font-size:0.7rem;font-weight:700;" title="Baja anterior al rastreo de fuente — {{ user.mkt_unsubscribed_at.strftime('%d/%m/%Y %H:%M') }} UTC">histórico</span>{% endif %}
+                                {% endif %}
+                            </button>
+                            <div id="bounce-{{ user.id }}" style="margin-top:4px;">
+                            {% if user.email_bounced_at %}
+                                <span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:0.7rem;font-weight:700;background:{% if user.email_bounce_type == 'hard' %}#fee2e2;color:#991b1b{% else %}#fef3c7;color:#92400e{% endif %};" title="{{ user.email_bounce_note or '' }} — {{ user.email_bounced_at.strftime('%d/%m/%Y %H:%M') }} UTC">
+                                    {% if user.email_bounce_type == 'hard' %}🚫 REBOTE DURO{% else %}⚠️ REBOTE BLANDO{% endif %}
+                                </span>
+                                <button onclick="clearBounce({{ user.id }})" style="margin-left:4px;padding:1px 6px;font-size:0.7rem;background:#e5e7eb;border:none;border-radius:6px;cursor:pointer;" title="Quitar marca de rebote">✕</button>
+                            {% else %}
+                                <button onclick="markBounce({{ user.id }}, 'hard')" style="padding:2px 6px;font-size:0.7rem;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;cursor:pointer;" title="Marcar como rebote duro (excluir de exportaciones)">Marcar rebote ▾</button>
+                            {% endif %}
+                            </div>
+                            <div id="contacto-{{ user.id }}" style="margin-top:4px;" data-ts="{{ user.ultimo_contacto_at.isoformat() if user.ultimo_contacto_at else '' }}" data-notas="{{ user.notas_contacto or '' }}">
+                            {% if user.ultimo_contacto_at %}
+                                <span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:0.7rem;font-weight:700;background:#dbeafe;color:#1e40af;" title="{{ user.notas_contacto or '' }} — {{ user.ultimo_contacto_at.strftime('%d/%m/%Y %H:%M') }} UTC">📞 Contactado {{ user.ultimo_contacto_at.strftime('%d/%m') }}</span>
+                                <button onclick="markContacto({{ user.id }})" style="margin-left:4px;padding:1px 6px;font-size:0.7rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;" title="Re-contactar / actualizar notas">↻</button>
+                                <button onclick="clearContacto({{ user.id }})" style="margin-left:2px;padding:1px 6px;font-size:0.7rem;background:#e5e7eb;border:none;border-radius:6px;cursor:pointer;" title="Quitar marca de contacto">✕</button>
+                            {% else %}
+                                <button onclick="markContacto({{ user.id }})" style="padding:2px 6px;font-size:0.7rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;" title="Registrar último contacto + notas">📞 Contactar ▾</button>
+                            {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <button class="ref-btn" onclick='verReferidos({{ user.id }}, {{ user.full_name|tojson }})'>Ver Referidos</button>
+                            <button class="ref-btn" style="background:#7c3aed;margin-top:4px;" onclick='verActividad({{ user.id }}, {{ user.full_name|tojson }})'>Actividad</button>
+                            <button class="ref-btn" style="background:#16a34a;margin-top:4px;" onclick='verCompras({{ user.id }}, {{ user.full_name|tojson }})' title="Historial de pagos confirmados v&iacute;a Stripe">Compras</button>
+                            <button class="ref-btn" style="background:#0891b2;margin-top:4px;" onclick='verEc0217({{ user.id }}, {{ user.full_name|tojson }})' title="Saldo y bit&aacute;cora de evaluaciones EC0217.01 (transcripci&oacute;n)">EC0217</button>
+                        </td>
+                        <td style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+                            <select class="admin-action-select" onchange='handleUserAction(this, {{ user.id }}, {{ user.full_name|tojson }})' id="action-{{ user.id }}" style="padding:6px 8px;border-radius:6px;border:1px solid #d1d5db;font-size:0.8rem;background:#fff;cursor:pointer;min-width:155px;">
+                                <option value="" disabled selected>Seleccionar acción...</option>
+                                <option value="tier_free">Cambiar a FREE</option>
+                                <option value="tier_pro">Cambiar a PRO (1 cr&eacute;dito)</option>
+                                <option value="tier_pro_5">Asignar PRO 5 Cursos (5 cr&eacute;ditos)</option>
+                                <option value="tier_premium">Cambiar a PREMIUM</option>
+                                <option value="nudge_first_doc">&#9993;&#65039; Enviar nudge "1er documento"</option>
+                                <option value="reset_pwd">&#128273; Resetear Password</option>
+                                <option value="grant_0217">Autorizar EC0217.01 (1/5/N)</option>
+                                <option value="revoke_0217">&#128683; Revocar saldo EC0217.01</option>
+                                <option value="reset_course">&#128260; Reset curso activo (devuelve cr&eacute;dito PRO)</option>
+                                <option value="restore_carta">&#128196; Restaurar Carta Descriptiva (a su cuenta)</option>
+                                {% if user.email != 'arturogarciac@pertinentia.com' %}
+                                <option value="delete_user">&#128465; Eliminar Usuario</option>
+                                {% endif %}
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if users_pagination and users_pagination.pages > 1 %}
+        <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+            {% set _extra_qs = ('&' ~ user_filters_qs) if user_filters_qs else '' %}
+            {% if users_pagination.has_prev %}
+            <a href="?page={{ users_pagination.prev_num }}{{ _extra_qs }}#mod1" style="padding:6px 14px;background:#e5e7eb;color:#374151;border-radius:6px;text-decoration:none;font-size:0.85rem;">← Anterior</a>
+            {% endif %}
+            {% for p in users_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    {% if p == users_pagination.page %}
+                    <span style="padding:6px 12px;background:#FA8072;color:#fff;border-radius:6px;font-size:0.85rem;font-weight:600;">{{ p }}</span>
+                    {% else %}
+                    <a href="?page={{ p }}{{ _extra_qs }}#mod1" style="padding:6px 12px;background:#f3f4f6;color:#374151;border-radius:6px;text-decoration:none;font-size:0.85rem;">{{ p }}</a>
+                    {% endif %}
+                {% else %}
+                    <span style="color:#9ca3af;">…</span>
+                {% endif %}
+            {% endfor %}
+            {% if users_pagination.has_next %}
+            <a href="?page={{ users_pagination.next_num }}{{ _extra_qs }}#mod1" style="padding:6px 14px;background:#e5e7eb;color:#374151;border-radius:6px;text-decoration:none;font-size:0.85rem;">Siguiente →</a>
+            {% endif %}
+            <span style="font-size:0.8rem;color:#6b7280;margin-left:0.5rem;">Pág. {{ users_pagination.page }}/{{ users_pagination.pages }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin:0 0 0.4rem 0;">Crear cuenta (admin)</h2>
+        <p style="font-size:0.82rem;color:#6b7280;margin:0 0 1rem;line-height:1.5;">
+            Crea una cuenta nueva. <strong>Se permite el mismo correo y WhatsApp</strong> que otra cuenta:
+            podrás dar de alta varias cuentas distintas para una misma persona/empresa. Cuando el correo ya
+            existe, el <strong>nombre/apellidos y la contraseña deben ser distintos</strong> a las cuentas
+            existentes con ese correo (la contraseña es la que distingue el inicio de sesión). No cierra tu
+            sesión de admin.
+        </p>
+        <form id="adminCreateUserForm" onsubmit="return adminCreateUser(event)"
+              style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.7rem;align-items:end;">
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Nombre(s)*
+                <input type="text" name="first_name" required maxlength="80" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Apellido paterno*
+                <input type="text" name="apellido_paterno" required maxlength="80" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Apellido materno
+                <input type="text" name="apellido_materno" maxlength="80" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Correo*
+                <input type="email" name="email" required maxlength="150" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">WhatsApp*
+                <input type="text" name="whatsapp" required maxlength="20" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Contraseña*
+                <input type="text" name="password" required minlength="6" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+            </label>
+            <label style="font-size:0.8rem;color:#374151;font-weight:600;">Plan
+                <select name="tier" style="width:100%;margin-top:3px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;">
+                    <option value="FREE">FREE</option>
+                    <option value="PRO">PRO</option>
+                    <option value="PREMIUM">PREMIUM</option>
+                </select>
+            </label>
+            <button type="submit" id="adminCreateUserBtn" style="background:#16a34a;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;height:fit-content;">Crear cuenta</button>
+        </form>
+        <div id="adminCreateUserMsg" style="margin-top:0.8rem;font-size:0.85rem;"></div>
+        <script>
+        async function adminCreateUser(ev){
+            ev.preventDefault();
+            var form = document.getElementById('adminCreateUserForm');
+            var btn = document.getElementById('adminCreateUserBtn');
+            var msg = document.getElementById('adminCreateUserMsg');
+            var payload = {
+                first_name: form.first_name.value.trim(),
+                apellido_paterno: form.apellido_paterno.value.trim(),
+                apellido_materno: form.apellido_materno.value.trim(),
+                email: form.email.value.trim(),
+                whatsapp: form.whatsapp.value.trim(),
+                password: form.password.value,
+                tier: form.tier.value
+            };
+            btn.disabled = true; btn.textContent = 'Creando…';
+            msg.textContent = '';
+            try {
+                var resp = await fetch('/api/admin/users/create', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                var data = await resp.json();
+                if (resp.ok && data.success) {
+                    msg.style.color = '#16a34a';
+                    msg.textContent = '✅ ' + data.message;
+                    form.reset();
+                } else {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '⚠️ ' + (data.error || 'No se pudo crear la cuenta.');
+                }
+            } catch(e) {
+                msg.style.color = '#dc2626';
+                msg.textContent = '⚠️ Error de conexión.';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Crear cuenta';
+            }
+            return false;
+        }
+        </script>
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin:0 0 1rem 0;">Configuración Global B2B</h2>
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem;">
+            <input type="hidden" name="key" value="COMISION_PORCENTAJE">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">Porcentaje de Comisión Afiliados:</label>
+            <input type="number" name="value" value="{{ comision_pct }}" step="0.01" min="0" max="1"
+                   style="width:100px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;text-align:center;">
+            <span style="font-size:0.78rem;color:#6b7280;">(0.30 = 30%)</span>
+            <button type="submit" style="background:#FA8072;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar Porcentaje</button>
+        </form>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin-bottom:1.2rem;">
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem;">
+            <input type="hidden" name="key" value="COST_PER_DAY_ADS">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">Tarifa Diaria de Publicidad (MXN):</label>
+            <input type="number" name="value" value="{{ cost_per_day_ads }}" step="1" min="1"
+                   style="width:120px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;text-align:center;">
+            <span style="font-size:0.78rem;color:#6b7280;">Costo por d&iacute;a que paga el anunciante</span>
+            <button type="submit" style="background:#FA8072;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar Tarifa</button>
+        </form>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin-bottom:1.2rem;">
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem;">
+            <input type="hidden" name="key" value="MAX_CONCURRENT_ADS">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">M&aacute;x. Anuncios Simult&aacute;neos:</label>
+            <input type="number" name="value" value="{{ max_concurrent_ads }}" step="1" min="1"
+                   style="width:80px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;text-align:center;">
+            <span style="font-size:0.78rem;color:#6b7280;">L&iacute;mite de campa&ntilde;as activas en paralelo (inventario)</span>
+            <button type="submit" style="background:#7c3aed;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar L&iacute;mite</button>
+        </form>
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <input type="hidden" name="key" value="MAX_CONCURRENT_AI">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">M&aacute;x. Generaciones IA Simult&aacute;neas:</label>
+            <input type="number" name="value" value="{{ max_concurrent_ai }}" step="1" min="1" max="10"
+                   style="width:80px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;text-align:center;">
+            <span style="font-size:0.78rem;color:#6b7280;">L&iacute;mite por worker Gunicorn (recomendado: 3-5)</span>
+            <button type="submit" style="background:#FA8072;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar</button>
+        </form>
+        {% set sat_colors = {'ok': '#059669', 'low': '#d97706', 'medium': '#ea580c', 'high': '#dc2626'} %}
+        {% set sat_bg = {'ok': '#ecfdf5', 'low': '#fffbeb', 'medium': '#fff7ed', 'high': '#fef2f2'} %}
+        {% set sat_icons = {'ok': '&#9679;', 'low': '&#9650;', 'medium': '&#9650;', 'high': '&#9888;'} %}
+        <div style="background:{{ sat_bg.get(sat_level, '#f9fafb') }};border:1px solid {{ sat_colors.get(sat_level, '#d1d5db') }};border-radius:10px;padding:0.8rem 1.2rem;margin-bottom:1rem;">
+            <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;">
+                <span style="color:{{ sat_colors.get(sat_level, '#6b7280') }};font-size:1.1rem;">{{ sat_icons.get(sat_level, '') | safe }}</span>
+                <span style="font-weight:700;font-size:0.92rem;color:{{ sat_colors.get(sat_level, '#374151') }};">Monitor de Saturaci&oacute;n IA</span>
+                <span style="font-size:0.78rem;color:#6b7280;margin-left:auto;">&uacute;ltimas 24h: <strong>{{ sat_count_24h }}</strong> rechazos &middot; 7 d&iacute;as: <strong>{{ sat_7d }}</strong></span>
+            </div>
+            <div style="font-size:0.85rem;color:#374151;">{{ sat_suggestion }}</div>
+            {% if sat_peak_hour and sat_count_24h > 0 %}
+            <div style="font-size:0.78rem;color:#6b7280;margin-top:0.3rem;">Hora pico: {{ sat_peak_hour }} ({{ sat_peak_count }} rechazos)</div>
+            {% endif %}
+        </div>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin-bottom:1.2rem;">
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <input type="hidden" name="key" value="STRIPE_WEBHOOK_SECRET">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">Secreto de Firma Webhook (whsec_...):</label>
+            <div style="position:relative;display:inline-block;">
+                <input type="password" name="value" id="stripe-wh-input" placeholder="{{ stripe_wh_masked or 'whsec_...' }}"
+                       style="width:280px;padding:6px 36px 6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;font-family:monospace;">
+                <button type="button" onclick="var i=document.getElementById('stripe-wh-input');i.type=i.type==='password'?'text':'password';"
+                        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#6b7280;" title="Mostrar/Ocultar">👁</button>
+            </div>
+            {% if stripe_wh_configured %}
+            <span style="font-size:0.78rem;color:#16a34a;font-weight:600;">✓ Configurado ({{ 'Base de Datos' if stripe_wh_source == 'bd' else 'Variable de Entorno' }})</span>
+            {% else %}
+            <span style="font-size:0.78rem;color:#d97706;font-weight:600;">⚠ No configurado</span>
+            {% endif %}
+            <button type="submit" style="background:#2563eb;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar Secreto</button>
+        </form>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:1.2rem 0;">
+        <form action="/admin/update_config" method="POST" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <input type="hidden" name="key" value="STRIPE_CHECKOUT_URL_AFFILIATE">
+            <label style="font-size:0.88rem;color:#374151;font-weight:600;">URL de Stripe Checkout (Afiliados):</label>
+            <input type="url" name="value" value="{{ stripe_checkout_aff }}" placeholder="https://buy.stripe.com/..."
+                   style="width:380px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;font-family:monospace;">
+            {% if stripe_checkout_aff %}
+            <span style="font-size:0.78rem;color:#16a34a;font-weight:600;">✓ Activo</span>
+            {% else %}
+            <span style="font-size:0.78rem;color:#6b7280;">Usando enlace hardcodeado PRO_AFFILIATE ($500)</span>
+            {% endif %}
+            <button type="submit" style="background:#FA8072;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Guardar URL</button>
+        </form>
+        <p style="font-size:0.75rem;color:#6b7280;margin:0.5rem 0 0;line-height:1.5;">Pega aqu&iacute; tu Payment Link de Stripe para afiliados. Se agregar&aacute;n <code>prefilled_email</code> y <code>client_reference_id</code> autom&aacute;ticamente al generar links de pago. Si est&aacute; vac&iacute;o, se usa el enlace hardcodeado <code>PRO_AFFILIATE</code> ($500 MXN).</p>
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin:0 0 0.5rem 0;">M&oacute;dulo 3 — Cartera Global de Referidos</h2>
+        <p style="font-size:0.82rem;color:#6b7280;margin-bottom:1rem;">Todos los prospectos registrados por afiliados, vinculados a su referente.</p>
+        {% if all_leads %}
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.6rem 1rem;font-size:0.82rem;">
+                <strong style="color:#166534;">Total:</strong> <span style="font-weight:700;color:#166534;">{{ all_leads|length }}</span>
+            </div>
+            <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:0.6rem 1rem;font-size:0.82rem;">
+                <strong style="color:#92400e;">Pendientes:</strong> <span style="font-weight:700;color:#92400e;">{{ all_leads|selectattr('status','equalto','Pendiente')|list|length }}</span>
+            </div>
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:0.6rem 1rem;font-size:0.82rem;">
+                <strong style="color:#15803d;">Pagados:</strong> <span style="font-weight:700;color:#15803d;">{{ all_leads|selectattr('status','equalto','Pagado')|list|length }}</span>
+            </div>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Afiliado (Sponsor)</th>
+                        <th>Prospecto Referido</th>
+                        <th>WhatsApp</th>
+                        <th>Estatus Pago</th>
+                        <th>Comisi&oacute;n</th>
+                        <th>Payout</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in all_leads %}
+                    <tr>
+                        <td>
+                            <span style="font-weight:600;">{{ lead.sponsor.full_name }}</span><br>
+                            <span style="font-size:0.72rem;color:#6b7280;">{{ lead.sponsor.email }}</span>
+                        </td>
+                        <td>
+                            <span style="font-weight:600;">{{ lead.prospect_name }}</span><br>
+                            <span style="font-size:0.72rem;color:#6b7280;">{{ lead.prospect_email }}</span>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ lead.prospect_whatsapp or '—' }}</td>
+                        <td>
+                            {% if lead.status == 'Pagado' %}
+                            <span style="background:#dcfce7;color:#166534;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.78rem;font-weight:600;">Pagado</span>
+                            {% else %}
+                            <span style="background:#fef3c7;color:#92400e;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.78rem;font-weight:600;">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {% if lead.commission_amount %}
+                            ${{ '%.2f'|format(lead.commission_amount) }} MXN
+                            {% else %}
+                            <span style="color:#9ca3af;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.78rem;">
+                            {% if lead.status == 'Pagado' %}
+                            <span style="color:{% if lead.payout_status == 'Liquidado' %}#16a34a{% elif lead.payout_status == 'Facturado' %}#2563eb{% else %}#d97706{% endif %};font-weight:600;">{{ lead.payout_status or 'Pendiente CFDI' }}</span>
+                            {% else %}
+                            <span style="color:#d1d5db;">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:1.5rem 0;">No hay referidos registrados a&uacute;n.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin:0 0 1rem 0;">M&oacute;dulo 4 — Control Financiero de Comisiones</h2>
+        {% if paid_leads %}
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Afiliado</th>
+                        <th>Prospecto</th>
+                        <th>Régimen</th>
+                        <th>Comisión Neta</th>
+                        <th>Archivos CFDI</th>
+                        <th>Estatus de Pago</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in paid_leads %}
+                    <tr id="payout-row-{{ lead.id }}">
+                        <td>{{ lead.sponsor.full_name }}<br><span style="font-size:0.72rem;color:#6b7280;">{{ lead.sponsor.email }}</span></td>
+                        <td>{{ lead.prospect_name }}<br><span style="font-size:0.72rem;color:#6b7280;">{{ lead.prospect_email }}</span></td>
+                        <td>{{ lead.sponsor.tax_regime or 'RESICO' }}</td>
+                        <td>
+                            <span class="payout-commission" data-regime='{{ lead.sponsor.tax_regime or "RESICO" }}'>—</span>
+                        </td>
+                        <td>
+                            {% if lead.cfdi_pdf %}
+                            <a class="cfdi-link" href="/api/admin/download_cfdi/{{ lead.id }}/pdf">PDF</a>
+                            <a class="cfdi-link" href="/api/admin/download_cfdi/{{ lead.id }}/xml">XML</a>
+                            {% else %}
+                            <span style="color:#9ca3af;font-size:0.78rem;">Sin CFDI</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <select class="payout-select" id="payout-status-{{ lead.id }}" onchange="updatePayout({{ lead.id }}, this.value)">
+                                <option value="Pendiente CFDI" {% if lead.payout_status == 'Pendiente CFDI' %}selected{% endif %}>Pendiente CFDI</option>
+                                <option value="CFDI en Revisión" {% if lead.payout_status == 'CFDI en Revisión' %}selected{% endif %}>CFDI en Revisión</option>
+                                <option value="Facturado" {% if lead.payout_status == 'Facturado' %}selected{% endif %}>Facturado</option>
+                                <option value="Liquidado" {% if lead.payout_status == 'Liquidado' %}selected{% endif %}>Liquidado</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:1.5rem 0;">No hay comisiones pendientes.</p>
+        {% endif %}
+
+        <h3 style="margin:1.5rem 0 0.75rem;color:#374151;border-top:1px solid #e5e7eb;padding-top:1rem;">Historial de Comisiones</h3>
+        {% if affiliate_commissions %}
+        <div style="overflow-x:auto;">
+            <table class="admin-table" style="font-size:0.78rem;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Afiliado</th>
+                        <th>Prospecto</th>
+                        <th>Plan</th>
+                        <th>Monto Pagado</th>
+                        <th>Comisi&oacute;n</th>
+                        <th>Stripe ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ac in affiliate_commissions %}
+                    <tr>
+                        <td>{{ ac.created_at.strftime('%d/%m/%Y %H:%M') if ac.created_at else '—' }}</td>
+                        <td>{{ ac.sponsor.full_name if ac.sponsor else '—' }}<br><span style="font-size:0.7rem;color:#6b7280;">ID: {{ ac.sponsor_id }}</span></td>
+                        <td>{{ ac.lead.prospect_email if ac.lead else '—' }}</td>
+                        <td>{{ tier_labels.get(ac.payment_type, ac.payment_type) }}</td>
+                        <td style="font-weight:600;">${{ '%.2f'|format(ac.amount) }} MXN</td>
+                        <td style="font-weight:600;color:#16a34a;">${{ '%.2f'|format(ac.commission_amount) }} MXN</td>
+                        <td style="font-family:monospace;font-size:0.68rem;">{{ (ac.stripe_session_id or '—')[:20] }}...</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:1rem 0;font-size:0.82rem;">A&uacute;n no hay comisiones registradas.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin:0 0 1rem 0;">M&oacute;dulo 5 — Red Publicitaria (Ad-Network B2B)</h2>
+
+        {% if broken_banners %}
+        <div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+            <h3 style="font-size:0.9rem;color:#991b1b;margin:0 0 0.5rem;">&#9888; Banners Rotos Detectados ({{ broken_banners|length }})</h3>
+            <p style="font-size:0.8rem;color:#7f1d1d;margin-bottom:0.5rem;">Las siguientes im&aacute;genes de anuncios activos no se encontraron en el servidor. Los anunciantes que pagaron ver&aacute;n banners sin imagen.</p>
+            <table class="admin-table" style="font-size:0.78rem;">
+                <thead><tr><th>ID</th><th>Campa&ntilde;a</th><th>Anunciante</th><th>Ruta Esperada</th></tr></thead>
+                <tbody>
+                {% for bb in broken_banners %}
+                <tr style="background:#fff5f5;">
+                    <td>{{ bb.id }}</td><td>{{ bb.title }}</td><td>{{ bb.advertiser }}</td><td style="color:#dc2626;font-family:monospace;font-size:0.72rem;">{{ bb.image_url }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #a7f3d0;border-radius:10px;padding:0.75rem 1rem;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#065f46;">${{ '{:,.0f}'.format(ads_total_revenue) }}</div>
+                <div style="font-size:0.72rem;color:#047857;font-weight:600;text-transform:uppercase;">Ingresos Totales (MXN)</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;border-radius:10px;padding:0.75rem 1rem;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#1e40af;">{{ ads_paid_count }}</div>
+                <div style="font-size:0.72rem;color:#2563eb;font-weight:600;text-transform:uppercase;">Campa&ntilde;as Pagadas</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#fefce8,#fef9c3);border:1px solid #fde68a;border-radius:10px;padding:0.75rem 1rem;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#92400e;">{{ ads_pending_count }}</div>
+                <div style="font-size:0.72rem;color:#b45309;font-weight:600;text-transform:uppercase;">Pendientes de Pago</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:10px;padding:0.75rem 1rem;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#166534;">{{ ads_active_count }}</div>
+                <div style="font-size:0.72rem;color:#16a34a;font-weight:600;text-transform:uppercase;">Activas Ahora</div>
+            </div>
+        </div>
+
+        {% if ads_by_advertiser %}
+        <div style="margin-bottom:1.25rem;">
+            <h3 style="font-size:0.9rem;color:#374151;margin-bottom:0.5rem;">Desglose por Anunciante</h3>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Anunciante</th>
+                            <th style="text-align:center;">Campa&ntilde;as</th>
+                            <th style="text-align:center;">Ingresos (MXN)</th>
+                            <th style="text-align:center;">Impresiones</th>
+                            <th style="text-align:center;">Clics</th>
+                            <th style="text-align:center;">CTR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for advertiser, data in ads_by_advertiser.items() %}
+                        <tr>
+                            <td style="font-size:0.82rem;">{{ advertiser }}</td>
+                            <td style="text-align:center;">{{ data.count }}</td>
+                            <td style="text-align:center;font-weight:600;color:#065f46;">${{ '{:,.0f}'.format(data.revenue) }}</td>
+                            <td style="text-align:center;">{{ '{:,}'.format(data.impressions) }}</td>
+                            <td style="text-align:center;">{{ '{:,}'.format(data.clicks) }}</td>
+                            <td style="text-align:center;">{% if data.impressions %}{{ '%.2f' % (data.clicks / data.impressions * 100) }}%{% else %}&mdash;{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button onclick="document.getElementById('newAdForm').style.display=document.getElementById('newAdForm').style.display==='none'?'block':'none'" style="background:#FA8072;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">+ Nuevo Anuncio</button>
+        </div>
+
+        {% if ad_issues %}
+        <div style="background:linear-gradient(135deg,#fefce8,#fff7ed);border:1px solid #fde68a;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+            <h3 style="font-size:0.9rem;color:#92400e;margin:0 0 0.75rem;">Incidencias Reportadas por Anunciantes <span class="badge" style="background:#d97706;">{{ ad_issues|length }}</span></h3>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Anunciante</th>
+                            <th>Tipo</th>
+                            <th>Descripci&oacute;n</th>
+                            <th>Estado</th>
+                            <th>Acci&oacute;n</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in ad_issues %}
+                        <tr>
+                            <td style="font-size:0.78rem;">{{ issue.created_at.strftime('%d/%m/%Y') if issue.created_at else '' }}</td>
+                            <td style="font-size:0.78rem;">{{ issue.user_email }}</td>
+                            <td style="font-size:0.78rem;">{{ issue.issue_type }}</td>
+                            <td style="font-size:0.78rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ issue.description }}">{{ issue.description }}</td>
+                            <td>
+                                <select onchange="updateIssueStatus({{ issue.id }}, this.value)" style="font-size:0.75rem;padding:3px 6px;border:1px solid #d1d5db;border-radius:6px;">
+                                    <option value="Abierto" {{ 'selected' if issue.status == 'Abierto' }}>Abierto</option>
+                                    <option value="En Proceso" {{ 'selected' if issue.status == 'En Proceso' }}>En Proceso</option>
+                                    <option value="Resuelto" {{ 'selected' if issue.status == 'Resuelto' }}>Resuelto</option>
+                                </select>
+                            </td>
+                            <td><button onclick="alert('Notas: ' + (this.dataset.notes || 'Sin notas'))" data-notes="{{ issue.admin_notes or '' }}" style="background:#6b7280;color:#fff;border:none;padding:3px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">Ver</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        <div id="newAdForm" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#374151;">T&iacute;tulo</label>
+                    <input type="text" id="ad-title" placeholder="Nombre del anuncio" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#374151;">URL Destino</label>
+                    <input type="url" id="ad-target-url" placeholder="https://..." style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#374151;">Descripci&oacute;n (opcional)</label>
+                    <input type="text" id="ad-description" placeholder="Texto breve" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#374151;">Email Anunciante (opcional)</label>
+                    <input type="email" id="ad-email" placeholder="anunciante@email.com" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+                </div>
+            </div>
+            <button onclick="crearAnuncio()" style="margin-top:0.8rem;background:#2563eb;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Crear Anuncio</button>
+        </div>
+        {% if ad_campaigns %}
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>T&iacute;tulo</th>
+                        <th>Anunciante</th>
+                        <th>Costo (MXN)</th>
+                        <th>Periodo</th>
+                        <th>Impresiones</th>
+                        <th>Clics</th>
+                        <th>CTR</th>
+                        <th>Estatus</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="adTableBody">
+                    {% for ad in ad_campaigns %}
+                    <tr id="ad-row-{{ ad.id }}">
+                        <td>{{ ad.id }}</td>
+                        <td>{{ ad.title }}<br><span style="font-size:0.7rem;color:#6b7280;">{{ ad.description or '' }}</span></td>
+                        <td style="font-size:0.78rem;">{{ ad.advertiser_email or 'Admin' }}</td>
+                        <td style="text-align:center;font-weight:600;">{% if ad.total_cost %}${{ '{:,.0f}'.format(ad.total_cost) }}{% else %}&mdash;{% endif %}</td>
+                        <td style="font-size:0.72rem;color:#6b7280;">{% if ad.starts_at %}{{ ad.starts_at.strftime('%d/%m') }}{% endif %}{% if ad.ends_at %} &ndash; {{ ad.ends_at.strftime('%d/%m') }}{% endif %}{% if not ad.starts_at and not ad.ends_at %}&mdash;{% endif %}</td>
+                        <td style="text-align:center;">{{ '{:,}'.format(ad.impressions or 0) }}</td>
+                        <td style="text-align:center;">{{ '{:,}'.format(ad.clicks or 0) }}</td>
+                        <td style="text-align:center;">{% if ad.impressions %}{{ '%.2f' % ((ad.clicks or 0) / ad.impressions * 100) }}%{% else %}—{% endif %}</td>
+                        <td>
+                            <select class="payout-select" id="ad-status-{{ ad.id }}" onchange="cambiarStatusAd({{ ad.id }}, this.value)">
+                                <option value="Pendiente" {% if ad.status == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                <option value="Activo" {% if ad.status == 'Activo' %}selected{% endif %}>Activo</option>
+                                <option value="Pausado" {% if ad.status == 'Pausado' %}selected{% endif %}>Pausado</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="eliminarAnuncio({{ ad.id }})" style="background:#dc2626;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:600;">Eliminar</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:1.5rem 0;">No hay campa&ntilde;as publicitarias registradas.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="referidos-modal" id="referidosModal">
+    <div class="referidos-modal-content">
+        <h3 id="referidosTitle">Referidos de —</h3>
+        <div id="referidosBody"></div>
+        <button class="close-modal-btn" onclick="document.getElementById('referidosModal').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<div class="referidos-modal" id="actividadModal">
+    <div class="referidos-modal-content" style="max-width:750px;position:relative;">
+        <button type="button" aria-label="Cerrar" title="Cerrar" onclick="document.getElementById('actividadModal').style.display='none'" style="position:absolute;top:10px;right:12px;background:transparent;border:none;font-size:1.4rem;line-height:1;color:#6b7280;cursor:pointer;padding:4px 8px;border-radius:6px;font-weight:700;">&times;</button>
+        <h3 id="actividadTitle" style="color:#7c3aed;">Actividad de —</h3>
+        <div id="actividadBody"></div>
+        <button class="close-modal-btn" onclick="document.getElementById('actividadModal').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<details style="margin-top:32px;" id="emailLogsCollapsible">
+<summary style="cursor:pointer;list-style:none;padding:14px 20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;font-weight:700;color:#1f2937;display:flex;align-items:center;justify-content:space-between;">
+    <span>📧 Logs de Correo (todos los tipos) <span style="color:#9ca3af;font-weight:400;font-size:0.85em;">— clic para expandir</span></span>
+    <span style="color:#6b7280;font-size:0.85em;font-weight:400;">▾</span>
+</summary>
+<section style="padding:20px; background:#fff; border:1px solid #e5e7eb; border-top:0; border-radius:0 0 12px 12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <h2 style="margin:0; color:#111827;font-size:1.05em;">Detalle de envíos</h2>
+        <div id="emailLogStats" style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="badge" style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:999px; font-size:0.85em;">Enviados 24h: <strong id="statSent">—</strong></span>
+            <span class="badge" style="background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:999px; font-size:0.85em;">Fallidos 24h: <strong id="statFailed">—</strong></span>
+            <span class="badge" style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:999px; font-size:0.85em;">Pendientes 24h: <strong id="statPending">—</strong></span>
+        </div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <select id="elFilterStatus" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px;">
+            <option value="">Todos los estados</option>
+            <option value="sent">Enviados</option>
+            <option value="failed">Fallidos</option>
+            <option value="pending">Pendientes</option>
+        </select>
+        <select id="elFilterType" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px;">
+            <option value="">Todos los tipos</option>
+            <option value="document">Documento</option>
+            <option value="tier_change">Cambio de tier</option>
+            <option value="password_reset">Reset password</option>
+            <option value="centinela_alert">Alerta Centinela</option>
+            <option value="ad_issue">Incidencia Publicidad</option>
+        </select>
+        <input type="number" id="elFilterUserId" placeholder="ID usuario" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; width:110px;">
+        <select id="elFilterDays" style="padding:6px 10px; border:1px solid #d1d5db; border-radius:6px;">
+            <option value="1">Últimas 24h</option>
+            <option value="7" selected>Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+        </select>
+        <button onclick="loadEmailLogs()" style="padding:6px 14px; background:#7c3aed; color:#fff; border:none; border-radius:6px; cursor:pointer;">Filtrar</button>
+    </div>
+    <div style="overflow-x:auto; margin-top:14px;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+            <thead>
+                <tr style="background:#f9fafb; text-align:left;">
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Fecha</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Tipo</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Destinatario</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Asunto / Archivo</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Estado</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Apertura</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Error / Respuesta</th>
+                    <th style="padding:8px; border-bottom:1px solid #e5e7eb;">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="emailLogsBody">
+                <tr><td colspan="8" style="padding:14px; text-align:center; color:#6b7280;">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+</details>
+
+<section style="background:#fff;border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,0.06);border:2px solid #FA8072;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+            <h2 style="margin:0;font-size:1.15em;color:#1f2937;">🎯 Outreach manual a clientes pagados (U16 / U17)</h2>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:0.85em;">Correo one-shot personalizado para los 2 clientes pagados reales. Revisa el HTML antes de enviar.</p>
+        </div>
+        <span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:999px;font-size:0.78em;font-weight:700;">Manual · 1 envío por usuario</span>
+    </div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+            <div style="font-weight:700;color:#1f2937;">U16 · Juana Leticia Hernández Rentería</div>
+            <div style="font-size:0.82em;color:#6b7280;margin:3px 0 8px;">PRO pagado $500 · Curso "Manejo Defensivo" generado · atorada en sesión 2</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="previewOutreach(16)" style="padding:6px 12px;background:#0891b2;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;">👁 Ver HTML</button>
+                <button onclick="sendOutreach('u16','U16 Juana Leticia')" style="padding:6px 12px;background:#dc2626;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;">📧 Enviar a U16</button>
+            </div>
+        </div>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
+            <div style="font-weight:700;color:#1f2937;">U17 · Oswaldo Flores</div>
+            <div style="font-size:0.82em;color:#6b7280;margin:3px 0 8px;">PRO admin_grant ($0) · nunca generó nada · entró 1 vez sin escribir</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="previewOutreach(17)" style="padding:6px 12px;background:#0891b2;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;">👁 Ver HTML</button>
+                <button onclick="sendOutreach('u17','U17 Oswaldo')" style="padding:6px 12px;background:#dc2626;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.85em;">📧 Enviar a U17</button>
+            </div>
+        </div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+        <button onclick="sendOutreach('both','AMBOS (U16 + U17)')" style="padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.9em;font-weight:700;">📤 Enviar a ambos</button>
+    </div>
+    <div id="outreachStatus" style="margin-top:10px;font-size:0.85em;color:#6b7280;"></div>
+</section>
+
+<script>
+function previewOutreach(uid) {
+    var modal = document.getElementById('reengagePreviewModal');
+    var frame = document.getElementById('reengagePreviewFrame');
+    var title = document.getElementById('reengagePreviewTitle');
+    title.textContent = 'Vista previa outreach U' + uid;
+    frame.src = '/api/admin/outreach/u16_u17/preview/' + uid + '?t=' + Date.now();
+    modal.style.display = 'flex';
+}
+async function sendOutreach(which, label) {
+    if (!confirm('¿Confirmas envío real a ' + label + '?\\n\\nNo es reversible. Asegúrate de haber revisado el HTML primero.')) return;
+    var status = document.getElementById('outreachStatus');
+    status.textContent = 'Enviando a ' + label + '…';
+    status.style.color = '#6b7280';
+    try {
+        var resp = await fetch('/api/admin/outreach/u16_u17/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({which: which, confirm: 'YES'})
+        });
+        var d = await resp.json();
+        if (d.error) { status.textContent = '❌ ' + d.error; status.style.color = '#dc2626'; return; }
+        var ok = (d.results||[]).filter(function(r){return r.sent;}).length;
+        var fail = (d.results||[]).filter(function(r){return !r.sent;}).length;
+        status.innerHTML = '✅ ' + ok + ' enviado(s) · ' + (fail?('❌ ' + fail + ' fallido(s) — '):'') + '<pre style="display:inline;font-size:0.85em;">' + JSON.stringify(d.results, null, 1) + '</pre>';
+        status.style.color = fail ? '#dc2626' : '#166534';
+        try { loadRecentSends(); } catch(e) {}
+    } catch(e) { status.textContent = '❌ Error: '+e.message; status.style.color = '#dc2626'; }
+}
+</script>
+
+<section style="background:#fff;border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+            <h2 style="margin:0;font-size:1.15em;color:#1f2937;">Re-engagement por Email</h2>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:0.85em;">Scheduler diario 10:00 CDMX. Respeta opt-out, bounces y consentimiento de marketing.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="loadReengagePreview()" style="padding:8px 14px;background:#0891b2;color:#fff;border:none;border-radius:6px;cursor:pointer;">Recalcular preview</button>
+            <button onclick="runAllReengage()" style="padding:8px 14px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;">Ejecutar TODAS ahora</button>
+        </div>
+    </div>
+    <div id="reengageStatus" style="margin-top:10px;color:#6b7280;font-size:0.85em;">Cargando preview…</div>
+
+    <div id="reengageDashboard" style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;"></div>
+
+    <div style="overflow-x:auto;margin-top:14px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+            <thead>
+                <tr style="background:#f9fafb;text-align:left;">
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Campaña</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Asunto</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Cooldown</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center;">Elegibles ahora</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Muestra (8 primeros)</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center;">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="reengageBody">
+                <tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <details style="margin-top:18px;" open>
+        <summary style="cursor:pointer;font-weight:700;color:#1f2937;padding:6px 0;">Historial de envíos (últimos 100)</summary>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="search" id="recentSendsSearch" placeholder="🔍 Buscar por nombre, email, ID o campaña…" style="flex:1;min-width:260px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.88em;">
+            <button onclick="loadRecentSends()" style="padding:6px 14px;background:#0891b2;color:#fff;border:none;border-radius:6px;cursor:pointer;">Refrescar</button>
+            <span id="recentSendsCount" style="color:#6b7280;font-size:0.82em;margin-left:auto;"></span>
+        </div>
+        <div style="overflow-x:auto;margin-top:10px;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.84em;" id="recentSendsTable">
+                <thead>
+                    <tr style="background:#f9fafb;text-align:left;">
+                        <th data-sort="attempted_at" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;">Fecha ▾</th>
+                        <th data-sort="campaign_label" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;">Campaña</th>
+                        <th data-sort="name" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;">Usuario</th>
+                        <th data-sort="email" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;">Email</th>
+                        <th data-sort="status" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;text-align:center;">Estado</th>
+                        <th data-sort="opened_at" style="padding:6px;border-bottom:1px solid #e5e7eb;cursor:pointer;">Apertura</th>
+                    </tr>
+                </thead>
+                <tbody id="recentSendsBody">
+                    <tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">Cargando…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+</section>
+
+<div id="reengagePreviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:12px 18px;background:#1f2937;color:#fff;display:flex;justify-content:space-between;align-items:center;">
+            <strong id="reengagePreviewTitle">Vista previa del correo</strong>
+            <button onclick="document.getElementById('reengagePreviewModal').style.display='none'" style="background:transparent;color:#fff;border:1px solid #fff;padding:4px 10px;border-radius:6px;cursor:pointer;">Cerrar ✕</button>
+        </div>
+        <iframe id="reengagePreviewFrame" style="flex:1;width:100%;border:0;min-height:60vh;background:#f3f4f6;"></iframe>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calcComision(regime) {
+    var base = 150;
+    var iva = base * 0.16;
+    var subtotal = base + iva;
+    var retIVA = base * (0.16 * (2/3));
+    var retISR = regime === 'PFAE' ? base * 0.10 : base * 0.0125;
+    return (subtotal - retISR - retIVA).toFixed(2);
+}
+
+document.querySelectorAll('.payout-commission').forEach(function(el) {
+    var regime = el.dataset.regime;
+    el.textContent = '$' + calcComision(regime) + ' MXN';
+});
+
+async function updatePayout(leadId, newStatus) {
+    try {
+        var resp = await fetch('/api/admin/update_payout/' + leadId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payout_status: newStatus })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var sel = document.getElementById('payout-status-' + leadId);
+            sel.style.borderColor = '#16a34a';
+            setTimeout(function() { sel.style.borderColor = '#d1d5db'; }, 1500);
+        } else {
+            alert(data.error || 'Error al actualizar estatus');
+        }
+    } catch(e) {
+        alert('Error de conexión');
+    }
+}
+
+async function verReferidos(userId, userName) {
+    document.getElementById('referidosTitle').textContent = 'Referidos de ' + userName;
+    document.getElementById('referidosBody').innerHTML = '<p style="color:#6b7280;">Cargando...</p>';
+    document.getElementById('referidosModal').style.display = 'flex';
+    try {
+        var resp = await fetch('/api/admin/referidos/' + userId);
+        var data = await resp.json();
+        if (data.success && data.leads.length > 0) {
+            var html = '<table><thead><tr><th>Prospecto</th><th>Email</th><th>Estatus</th><th>Pago</th></tr></thead><tbody>';
+            data.leads.forEach(function(l) {
+                html += '<tr><td>' + l.prospect_name + '</td><td>' + l.prospect_email + '</td><td>' + l.status + '</td><td>' + l.payout_status + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('referidosBody').innerHTML = html;
+        } else {
+            document.getElementById('referidosBody').innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem;">Este usuario no tiene referidos.</p>';
+        }
+    } catch(e) {
+        document.getElementById('referidosBody').innerHTML = '<p style="color:#dc2626;">Error al cargar referidos.</p>';
+    }
+}
+
+function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+async function verActividad(userId, userName) {
+    document.getElementById('actividadTitle').textContent = 'Actividad de ' + userName;
+    document.getElementById('actividadBody').innerHTML = '<p style="color:#6b7280;">Cargando...</p>';
+    document.getElementById('actividadModal').style.display = 'flex';
+    try {
+        var resp = await fetch('/api/admin/actividad/' + userId);
+        var data = await resp.json();
+        if (data.success && data.events.length > 0) {
+            var tbl = document.createElement('table');
+            tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.82rem;';
+            tbl.innerHTML = '<thead><tr style="background:#f3f4f6;"><th style="padding:8px;text-align:left;">Fecha</th><th style="padding:8px;text-align:left;">Categor\u00eda</th><th style="padding:8px;text-align:left;">Acci\u00f3n</th><th style="padding:8px;text-align:left;">IP</th></tr></thead>';
+            var tbody = document.createElement('tbody');
+            var catColors = {Auth:'#059669',IA:'#7c3aed',Descarga:'#2563eb',Seguridad:'#dc2626',Navegacion:'#d97706'};
+            data.events.forEach(function(e) {
+                var tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #e5e7eb';
+                var td1 = document.createElement('td');
+                td1.style.cssText = 'padding:6px 8px;white-space:nowrap;';
+                td1.textContent = e.timestamp;
+                var td2 = document.createElement('td');
+                td2.style.cssText = 'padding:6px 8px;';
+                var span = document.createElement('span');
+                span.style.cssText = 'font-weight:600;color:' + (catColors[e.category] || '#6b7280') + ';';
+                span.textContent = e.category;
+                td2.appendChild(span);
+                var td3 = document.createElement('td');
+                td3.style.cssText = 'padding:6px 8px;';
+                td3.textContent = e.action;
+                var td4 = document.createElement('td');
+                td4.style.cssText = 'padding:6px 8px;color:#9ca3af;font-size:0.75rem;';
+                td4.textContent = e.ip;
+                tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+                tbody.appendChild(tr);
+            });
+            tbl.appendChild(tbody);
+            var body = document.getElementById('actividadBody');
+            body.innerHTML = '';
+            body.appendChild(tbl);
+        } else {
+            document.getElementById('actividadBody').innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem;">Este usuario no tiene actividad registrada.</p>';
+        }
+    } catch(err) {
+        document.getElementById('actividadBody').innerHTML = '<p style="color:#dc2626;">Error al cargar actividad.</p>';
+    }
+}
+
+async function verCompras(userId, userName) {
+    document.getElementById('actividadTitle').textContent = 'Compras de ' + userName;
+    document.getElementById('actividadBody').innerHTML = '<p style="color:#6b7280;">Cargando...</p>';
+    document.getElementById('actividadModal').style.display = 'flex';
+    try {
+        var resp = await fetch('/api/admin/compras/' + userId);
+        var data = await resp.json();
+        if (data.purchases && data.purchases.length > 0) {
+            var html = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.8rem;background:#dcfce7;border-radius:8px;border:1px solid #86efac;font-size:0.85rem;color:#15803d;font-weight:600;">' +
+                       'Total acumulado: $' + data.total_mxn.toLocaleString('es-MX') + ' MXN &middot; ' + data.count + ' transacci\u00f3n' + (data.count !== 1 ? 'es' : '') + '</div>';
+            html += '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+            html += '<thead><tr style="background:#f3f4f6;"><th style="padding:8px;text-align:left;">Fecha</th><th style="padding:8px;text-align:left;">Producto</th><th style="padding:8px;text-align:right;">Monto</th><th style="padding:8px;text-align:center;">Cr\u00e9ditos</th><th style="padding:8px;text-align:left;">Sesi\u00f3n Stripe</th></tr></thead><tbody>';
+            data.purchases.forEach(function(p) {
+                var typeColor = p.payment_type.indexOf('PRO_MULTICURSO') >= 0 ? '#FA8072' : (p.payment_type.indexOf('PREMIUM') >= 0 ? '#7c3aed' : (p.payment_type.indexOf('ALACARTE') >= 0 ? '#d97706' : '#1e40af'));
+                var isGrant = (p.source === 'admin_grant');
+                var grantBadge = isGrant ? ' <span style="display:inline-block;padding:1px 6px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:0.65rem;font-weight:700;letter-spacing:0.3px;margin-left:4px;" title="Asignaci\u00f3n manual por admin (cortes\u00eda, sin cobro Stripe)">CORTES\u00cdA</span>' : '';
+                html += '<tr style="border-bottom:1px solid #e5e7eb;' + (isGrant ? 'background:#fffbeb;' : '') + '">';
+                html += '<td style="padding:6px 8px;white-space:nowrap;color:#6b7280;">' + p.created_at + '</td>';
+                html += '<td style="padding:6px 8px;font-weight:600;color:' + typeColor + ';">' + p.label + grantBadge + '</td>';
+                html += '<td style="padding:6px 8px;text-align:right;font-weight:600;' + (isGrant ? 'color:#92400e;' : '') + '">' + (isGrant && p.amount_mxn === 0 ? '$0 (cortes\u00eda)' : '$' + p.amount_mxn.toLocaleString('es-MX')) + '</td>';
+                html += '<td style="padding:6px 8px;text-align:center;">' + (p.credits_granted > 0 ? '+' + p.credits_granted : '—') + '</td>';
+                html += '<td style="padding:6px 8px;color:#9ca3af;font-size:0.7rem;font-family:monospace;">' + (p.stripe_session_id || (isGrant ? 'admin' : '—')) + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('actividadBody').innerHTML = html;
+        } else {
+            document.getElementById('actividadBody').innerHTML = '<p style="color:#9ca3af;text-align:center;padding:1rem;">Este usuario no tiene compras registradas. (Las compras anteriores al despliegue de esta funci\u00f3n no aparecer\u00e1n; las nuevas se registran autom\u00e1ticamente v\u00eda webhook de Stripe.)</p>';
+        }
+    } catch(err) {
+        document.getElementById('actividadBody').innerHTML = '<p style="color:#dc2626;">Error al cargar compras.</p>';
+    }
+}
+
+async function handleUserAction(selectEl, userId, userName) {
+    var action = selectEl.value;
+    if (!action) return;
+    selectEl.disabled = true;
+
+    if (action.startsWith('tier_')) {
+        var newTier = action.replace('tier_', '').toUpperCase();
+        var labelMap = {FREE:'FREE',PRO:'PRO (1 cr\u00e9dito)',PRO_5:'PRO 5 Cursos (5 cr\u00e9ditos)',PREMIUM:'Premium'};
+        var isDowngradeFree = (newTier === 'FREE');
+        var prompt1 = '\u00bfConfirmas cambiar a ' + (userName || 'este usuario') + ' al plan ' + (labelMap[newTier]||newTier) + '?\n\nClic OK para continuar o Cancelar para abortar.';
+        if (!confirm(prompt1)) { selectEl.disabled = false; selectEl.value = ''; return; }
+        var reason = '';
+        if (isDowngradeFree) {
+            reason = window.prompt('Motivo del cambio a FREE (se incluir\u00e1 en el correo al usuario; obligatorio para downgrades):', '');
+            if (reason === null) { selectEl.disabled = false; selectEl.value = ''; return; }
+            reason = (reason || '').trim();
+            if (!reason) {
+                alert('Debes indicar un motivo para downgrade a FREE.');
+                selectEl.disabled = false; selectEl.value = '';
+                return;
+            }
+        } else {
+            var optReason = window.prompt('Motivo (opcional, se incluir\u00e1 en el correo al usuario). Deja vac\u00edo para omitir:', '');
+            if (optReason === null) { selectEl.disabled = false; selectEl.value = ''; return; }
+            reason = (optReason || '').trim();
+        }
+        var notify = confirm('\u00bfNotificar al usuario por correo electr\u00f3nico?\n\nOK = enviar email transaccional\nCancelar = aplicar cambio en silencio (no recomendado para upgrades/downgrades)');
+        try {
+            var resp = await fetch('/api/admin/toggle_tier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, new_tier: newTier, notify: notify, reason: reason })
+            });
+            var data = await resp.json();
+            if (data.success) {
+                var tierEl = document.getElementById('tier-' + userId);
+                tierEl.textContent = data.new_tier;
+                tierEl.className = 'tier-badge tier-' + data.new_tier.toLowerCase();
+                var creditsEl = document.getElementById('credits-' + userId);
+                if (creditsEl) {
+                    var c = data.credits || 0;
+                    if (data.new_tier === 'PRO') {
+                        creditsEl.textContent = c + ' crédito' + (c !== 1 ? 's' : '');
+                        creditsEl.style.color = '#6b7280';
+                        creditsEl.style.fontWeight = '600';
+                        creditsEl.style.fontStyle = 'normal';
+                    } else if (c > 0) {
+                        creditsEl.textContent = c + ' créd. en reserva';
+                        creditsEl.style.color = '#9ca3af';
+                        creditsEl.style.fontStyle = 'italic';
+                        creditsEl.style.fontWeight = '500';
+                    } else {
+                        creditsEl.textContent = '';
+                    }
+                }
+                selectEl.style.borderColor = '#16a34a';
+                setTimeout(function() { selectEl.style.borderColor = '#d1d5db'; }, 1500);
+            } else {
+                alert(data.error || 'Error al cambiar plan');
+            }
+        } catch(e) {
+            alert('Error de conexión');
+        }
+    } else if (action === 'nudge_first_doc') {
+        if (!confirm('¿Enviar correo "¿Te ayudo a generar tu primer documento?" a "' + userName + '"?\n\n' +
+                     'Solo se envía si:\n' +
+                     '• El usuario no ha generado ningún documento\n' +
+                     '• Tiene consentimiento de marketing activo\n' +
+                     '• El email no está marcado como rebotado')) {
+            selectEl.selectedIndex = 0;
+            selectEl.disabled = false;
+            return;
+        }
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/send_nudge_first_doc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            var data = await resp.json();
+            if (data.success) {
+                alert('✅ ' + (data.message || 'Nudge enviado'));
+                selectEl.style.borderColor = '#16a34a';
+                setTimeout(function() { selectEl.style.borderColor = '#d1d5db'; }, 1500);
+            } else {
+                alert('⚠️ ' + (data.error || 'No se pudo enviar el nudge'));
+            }
+        } catch(e) {
+            alert('Error de conexión');
+        }
+    } else if (action === 'reset_pwd') {
+        if (!confirm('¿Resetear la contraseña de "' + userName + '" a Temporal123! ?')) {
+            selectEl.selectedIndex = 0;
+            selectEl.disabled = false;
+            return;
+        }
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/reset_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            var data = await resp.json();
+            if (data.success) {
+                selectEl.style.borderColor = '#16a34a';
+                setTimeout(function() { selectEl.style.borderColor = '#d1d5db'; }, 1500);
+            } else {
+                alert(data.error || 'Error al resetear contraseña');
+            }
+        } catch(e) {
+            alert('Error de conexión');
+        }
+    } else if (action === 'reset_course') {
+        if (!confirm('¿Hacer HARD RESET del curso activo de "' + userName + '"?\n\n' +
+                     '• Cierra la CourseSession activa y crea una nueva en blanco.\n' +
+                     '• Purga master_doc / course_info_json / topic del curso actual.\n' +
+                     '• Si el curso activo era un demo (is_demo=True), lo elimina por completo.\n' +
+                     '• Si es usuario PRO con curso en candado: DEVUELVE 1 crédito para que pueda volver a generar.\n' +
+                     '• Estampa la señal que purga el caché del navegador del usuario.\n\n' +
+                     'Útil para rehabilitar a un cliente PRO que no puede generar (o cuyo curso quedó contaminado por un demo).')) {
+            selectEl.selectedIndex = 0;
+            selectEl.disabled = false;
+            return;
+        }
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/reset_course', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            var data = await resp.json();
+            if (data.success) {
+                var msg = '✅ Reset OK. Nueva CourseSession #' + (data.new_course_session_num || '?') +
+                          ' (id=' + (data.new_course_session_id || '?') + ').';
+                if (data.purged_demo) msg += '\nLa sesión activa anterior era un demo → eliminada.';
+                if (data.pro_credit_restored) msg += '\n💳 Crédito PRO devuelto. Ahora tiene ' + (data.pro_courses_remaining != null ? data.pro_courses_remaining : '?') + ' curso(s) disponible(s).';
+                if (data.credit_snapshot_match === false) msg += '\n⚠️ ATENCIÓN: snapshot de créditos cambió — revisar logs.';
+                alert(msg);
+                selectEl.style.borderColor = '#16a34a';
+                setTimeout(function() { selectEl.style.borderColor = '#d1d5db'; }, 2000);
+            } else {
+                alert('⚠️ ' + (data.error || 'No se pudo resetear el curso'));
+            }
+        } catch(e) {
+            alert('Error de conexión');
+        }
+    } else if (action === 'delete_user') {
+        if (!confirm('¿Eliminar al usuario "' + userName + '"? Esta acción no se puede deshacer.')) {
+            selectEl.selectedIndex = 0;
+            selectEl.disabled = false;
+            return;
+        }
+        try {
+            var resp = await fetch('/api/admin/users/' + userId, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            var data = await resp.json();
+            if (data.success) {
+                var row = document.getElementById('user-row-' + userId);
+                if (row) row.remove();
+                var count = document.getElementById('usersTableBody').querySelectorAll('tr').length;
+                document.getElementById('userCount').textContent = count;
+            } else {
+                alert(data.error || 'Error al eliminar usuario');
+            }
+        } catch(e) {
+            alert('Error de conexión');
+        }
+    } else if (action === 'grant_0217') {
+        var raw = prompt('¿Cuántas evaluaciones EC0217.01 (transcripción) autorizar a "' + userName + '"?\n\nSe SUMAN al saldo actual. Ej: 1, 5, o cualquier número.', '1');
+        if (raw === null) { selectEl.selectedIndex = 0; selectEl.disabled = false; return; }
+        var cant = parseInt(raw, 10);
+        if (isNaN(cant) || cant < 1 || cant > 999) {
+            alert('Cantidad inválida. Ingresa un número entre 1 y 999.');
+            selectEl.selectedIndex = 0; selectEl.disabled = false; return;
+        }
+        var notaG = prompt('Nota opcional para la bitácora (motivo/folio de aclaración):', '') || '';
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/grant_ec0217', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cantidad: cant, nota: notaG })
+            });
+            var data = await resp.json();
+            if (data.success) { alert('✅ ' + data.message); }
+            else { alert('⚠️ ' + (data.error || 'No se pudo autorizar')); }
+        } catch(e) { alert('Error de conexión'); }
+    } else if (action === 'restore_carta') {
+        if (!confirm('¿Regenerar la Carta Descriptiva de "' + userName + '" y dejarla disponible para descarga EN SU CUENTA?\n\nÚsalo cuando el usuario generó su curso pero quedó sin el archivo descargable.')) {
+            selectEl.selectedIndex = 0; selectEl.disabled = false; return;
+        }
+        selectEl.disabled = true;
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/restore_carta', { method:'POST' });
+            var data = await resp.json();
+            if (data.success) { alert('✅ Carta Descriptiva restaurada para ' + userName + '.\n\nArchivo: ' + data.filename + '\nYa aparece el botón de descarga en su cuenta.'); }
+            else { alert('⚠️ ' + (data.error || 'No se pudo restaurar la Carta Descriptiva.')); }
+        } catch(e) { alert('Error de conexión.'); }
+    } else if (action === 'revoke_0217') {
+        if (!confirm('¿Revocar TODO el saldo EC0217.01 de "' + userName + '"? El saldo quedará en 0.')) {
+            selectEl.selectedIndex = 0; selectEl.disabled = false; return;
+        }
+        try {
+            var resp = await fetch('/api/admin/users/' + userId + '/grant_ec0217', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cantidad: 0 })
+            });
+            var data = await resp.json();
+            if (data.success) { alert('✅ ' + data.message); }
+            else { alert('⚠️ ' + (data.error || 'No se pudo revocar')); }
+        } catch(e) { alert('Error de conexión'); }
+    }
+
+    selectEl.selectedIndex = 0;
+    selectEl.disabled = false;
+}
+
+async function verEc0217(userId, userName) {
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/ec0217_ledger');
+        var data = await resp.json();
+        if (!data.success) { alert('⚠️ ' + (data.error || 'No se pudo cargar la bitácora')); return; }
+        var rows = (data.movimientos || []).map(function(m) {
+            return '<tr>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;white-space:nowrap;">' + m.fecha + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;">' + m.tipo + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;">' + m.cantidad + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;">' + m.saldo_after + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;">' + (m.portafolio_id || '—') + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;">' + (m.admin || '—') + '</td>' +
+                '<td style="padding:4px 8px;border-bottom:1px solid #eee;">' + (m.nota || '') + '</td>' +
+                '</tr>';
+        }).join('');
+        if (!rows) rows = '<tr><td colspan="7" style="padding:12px;text-align:center;color:#6b7280;">Sin movimientos registrados.</td></tr>';
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML =
+            '<div style="background:#fff;border-radius:10px;max-width:880px;width:100%;max-height:85vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.25);">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;">' +
+                    '<h3 style="margin:0;font-size:1.1rem;color:#0e7490;">EC0217.01 (transcripción) — ' + userName + '</h3>' +
+                    '<button class="ec0217-close" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-weight:600;">Cerrar</button>' +
+                '</div>' +
+                '<p style="margin:0 0 12px;font-size:0.95rem;">Saldo disponible: <strong style="font-size:1.15rem;color:#0e7490;">' + (data.saldo || 0) + '</strong> evaluación(es).</p>' +
+                '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">' +
+                    '<thead><tr style="background:#f1f5f9;text-align:left;">' +
+                        '<th style="padding:6px 8px;">Fecha y hora</th><th style="padding:6px 8px;">Tipo</th>' +
+                        '<th style="padding:6px 8px;text-align:center;">Cant.</th><th style="padding:6px 8px;text-align:center;">Saldo</th>' +
+                        '<th style="padding:6px 8px;text-align:center;">Eval #</th><th style="padding:6px 8px;">Admin</th><th style="padding:6px 8px;">Nota</th>' +
+                    '</tr></thead><tbody>' + rows + '</tbody></table>' +
+            '</div>';
+        document.body.appendChild(overlay);
+        overlay.querySelector('.ec0217-close').onclick = function() { overlay.remove(); };
+    } catch(e) { alert('Error de conexión'); }
+}
+
+function _renderMarketingBadge(consent, source, unsubscribedAt) {
+    var styles = {
+        SIGNUP: 'background:#dcfce7;color:#166534;',
+        USER:   'background:#dbeafe;color:#1e40af;',
+        ADMIN:  'background:#e5e7eb;color:#374151;',
+        AUTO:   'background:#fef3c7;color:#92400e;',
+        HIST:   'background:#f3f4f6;color:#6b7280;'
+    };
+    var badge = function(label, key, title) {
+        return '<span style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;font-size:0.7rem;font-weight:700;' + styles[key] + '" title="' + (title || '') + '">' + label + '</span>';
+    };
+    if (consent) {
+        var html = '<span style="color:#16a34a;">&#9989; Permite Push/Wa</span>';
+        if (source === 'SIGNUP') html += badge('SIGNUP', 'SIGNUP', 'Aceptó al registrarse');
+        else if (source === 'USER') html += badge('by User', 'USER', 'Reactivado por el usuario');
+        else if (source === 'ADMIN') html += badge('by Admin', 'ADMIN', 'Activado por administrador');
+        return html;
+    } else {
+        var html = '<span style="color:#dc2626;">&#128683; Solo Servicio / Opt-Out</span>';
+        if (source === 'USER') html += badge('by User', 'USER', 'Baja solicitada por el usuario');
+        else if (source === 'ADMIN') html += badge('by Admin', 'ADMIN', 'Baja registrada por administrador');
+        else if (source === 'AUTO') html += badge('AUTO', 'AUTO', 'Baja automática del sistema');
+        else if (unsubscribedAt) html += badge('histórico', 'HIST', 'Baja anterior al rastreo de fuente');
+        return html;
+    }
+}
+
+async function toggleMarketing(userId) {
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/marketing_consent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var btn = document.getElementById('mkt-' + userId);
+            btn.innerHTML = _renderMarketingBadge(data.marketing_consent, data.marketing_consent_source, data.unsubscribed_at);
+            var titleParts = ['Alternar consentimiento de publicidad'];
+            if (data.unsubscribed_at) titleParts.push('Baja: ' + data.unsubscribed_at + ' UTC');
+            if (data.marketing_consent_source) titleParts.push('Última fuente: ' + data.marketing_consent_source);
+            btn.title = titleParts.join(' | ');
+        }
+    } catch(e) {
+        alert('Error de conexión');
+    }
+}
+
+async function markBounce(userId, defaultType) {
+    var typeChoice = prompt('Tipo de rebote:\n1 = Duro (hard) — correo inválido permanente\n2 = Blando (soft) — temporal, reintentable\n\nEscribe 1 o 2:', defaultType === 'soft' ? '2' : '1');
+    if (!typeChoice) return;
+    var bounce_type = (typeChoice.trim() === '2') ? 'soft' : 'hard';
+    var note = prompt('Nota opcional (origen del rebote, fecha de campaña, etc.):', '');
+    if (note === null) return;
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/bounce', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set', bounce_type: bounce_type, note: note })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            renderBounceCell(userId, data);
+        } else {
+            alert('Error: ' + (data.error || 'desconocido'));
+        }
+    } catch(e) {
+        alert('Error de conexión');
+    }
+}
+
+async function clearBounce(userId) {
+    if (!confirm('¿Quitar la marca de rebote? El usuario volverá a aparecer en el CSV limpio.')) return;
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/bounce', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear' })
+        });
+        var data = await resp.json();
+        if (data.success) renderBounceCell(userId, data);
+    } catch(e) {
+        alert('Error de conexión');
+    }
+}
+
+function renderBounceCell(userId, data) {
+    var cell = document.getElementById('bounce-' + userId);
+    if (!cell) return;
+    cell.innerHTML = '';
+    if (data.bounced) {
+        var isHard = data.bounce_type === 'hard';
+        var span = document.createElement('span');
+        span.style.cssText = 'display:inline-block;padding:2px 6px;border-radius:8px;font-size:0.7rem;font-weight:700;background:' +
+            (isHard ? '#fee2e2;color:#991b1b' : '#fef3c7;color:#92400e') + ';';
+        span.title = data.note || '';
+        span.textContent = isHard ? '🚫 REBOTE DURO' : '⚠️ REBOTE BLANDO';
+        var btn = document.createElement('button');
+        btn.style.cssText = 'margin-left:4px;padding:1px 6px;font-size:0.7rem;background:#e5e7eb;border:none;border-radius:6px;cursor:pointer;';
+        btn.textContent = '✕';
+        btn.onclick = function(){ clearBounce(userId); };
+        cell.appendChild(span);
+        cell.appendChild(document.createTextNode(' '));
+        cell.appendChild(btn);
+    } else {
+        var b = document.createElement('button');
+        b.style.cssText = 'padding:2px 6px;font-size:0.7rem;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;cursor:pointer;';
+        b.textContent = 'Marcar rebote ▾';
+        b.onclick = function(){ markBounce(userId, 'hard'); };
+        cell.appendChild(b);
+    }
+}
+
+async function markContacto(userId) {
+    var cell = document.getElementById('contacto-' + userId);
+    var prevNotas = (cell && cell.getAttribute('data-notas')) || '';
+    var notas = prompt('Notas del contacto (canal usado, respuesta, próximo paso):', prevNotas);
+    if (notas === null) return;
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/contacto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set', notas: notas })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            renderContactoCell(userId, data);
+        } else {
+            alert('Error: ' + (data.error || 'desconocido'));
+        }
+    } catch(e) { alert('Error de conexión'); }
+}
+
+async function clearContacto(userId) {
+    if (!confirm('¿Quitar la marca de contacto de este usuario?')) return;
+    try {
+        var resp = await fetch('/api/admin/users/' + userId + '/contacto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clear' })
+        });
+        var data = await resp.json();
+        if (data.success) renderContactoCell(userId, data);
+    } catch(e) { alert('Error de conexión'); }
+}
+
+function renderContactoCell(userId, data) {
+    var cell = document.getElementById('contacto-' + userId);
+    if (!cell) return;
+    cell.setAttribute('data-ts', data.ultimo_contacto_at || '');
+    cell.setAttribute('data-notas', data.notas_contacto || '');
+    cell.innerHTML = '';
+    if (data.ultimo_contacto_at) {
+        var d = new Date(data.ultimo_contacto_at);
+        var dd = String(d.getUTCDate()).padStart(2, '0');
+        var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        var span = document.createElement('span');
+        span.style.cssText = 'display:inline-block;padding:2px 6px;border-radius:8px;font-size:0.7rem;font-weight:700;background:#dbeafe;color:#1e40af;';
+        span.title = data.notas_contacto || '';
+        span.textContent = '📞 Contactado ' + dd + '/' + mm;
+        var btnUpd = document.createElement('button');
+        btnUpd.style.cssText = 'margin-left:4px;padding:1px 6px;font-size:0.7rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;';
+        btnUpd.textContent = '↻';
+        btnUpd.title = 'Re-contactar / actualizar notas';
+        btnUpd.onclick = function(){ markContacto(userId); };
+        var btnClr = document.createElement('button');
+        btnClr.style.cssText = 'margin-left:2px;padding:1px 6px;font-size:0.7rem;background:#e5e7eb;border:none;border-radius:6px;cursor:pointer;';
+        btnClr.textContent = '✕';
+        btnClr.onclick = function(){ clearContacto(userId); };
+        cell.appendChild(span);
+        cell.appendChild(document.createTextNode(' '));
+        cell.appendChild(btnUpd);
+        cell.appendChild(btnClr);
+    } else {
+        var b = document.createElement('button');
+        b.style.cssText = 'padding:2px 6px;font-size:0.7rem;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;';
+        b.textContent = '📞 Contactar ▾';
+        b.onclick = function(){ markContacto(userId); };
+        cell.appendChild(b);
+    }
+}
+
+async function crearAnuncio() {
+    var title = document.getElementById('ad-title').value.trim();
+    var target_url = document.getElementById('ad-target-url').value.trim();
+    var description = document.getElementById('ad-description').value.trim();
+    var email = document.getElementById('ad-email').value.trim();
+    if (!title || !target_url) { alert('Título y URL destino son obligatorios.'); return; }
+    try {
+        var resp = await fetch('/api/admin/ads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title, target_url: target_url, description: description, advertiser_email: email })
+        });
+        var data = await resp.json();
+        if (data.success) { window.location.reload(); }
+        else { alert(data.error || 'Error al crear anuncio'); }
+    } catch(e) { alert('Error de conexión'); }
+}
+
+async function cambiarStatusAd(adId, newStatus) {
+    try {
+        var resp = await fetch('/api/admin/ads/' + adId + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var sel = document.getElementById('ad-status-' + adId);
+            sel.style.borderColor = '#16a34a';
+            setTimeout(function() { sel.style.borderColor = '#d1d5db'; }, 1500);
+        } else { alert(data.error || 'Error al cambiar estatus'); }
+    } catch(e) { alert('Error de conexión'); }
+}
+
+
+</script>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin-bottom:1rem;">&#128202; M&eacute;tricas Globales (PLG Funnel)</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;">
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:1.25rem;text-align:center;">
+                <div style="font-size:1.5rem;font-weight:800;color:#0c4a6e;">{{ ghost_count }}</div>
+                <div style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Visitantes Fantasma</div>
+            </div>
+            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:1.25rem;text-align:center;">
+                <div style="font-size:1.5rem;font-weight:800;color:#92400e;">{{ orphan_count }}</div>
+                <div style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Generaciones An&oacute;nimas</div>
+            </div>
+            <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:1.25rem;text-align:center;">
+                <div style="font-size:1.5rem;font-weight:800;color:#065f46;">{{ converted_count }}</div>
+                <div style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Conversiones (An&oacute;n → Registro)</div>
+            </div>
+            <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;padding:1.25rem;text-align:center;">
+                <div style="font-size:1.5rem;font-weight:800;color:#5b21b6;">{{ conversion_rate }}%</div>
+                <div style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Tasa de Conversi&oacute;n</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <h2 style="margin-bottom:1rem;">&#128680; Alertas de Seguridad</h2>
+        {% if security_events %}
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Evento</th>
+                        <th>Usuario / IP</th>
+                        <th>Detalles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evt in security_events %}
+                    <tr>
+                        <td style="font-size:0.78rem;white-space:nowrap;">{{ evt.timestamp.strftime('%d/%m/%Y %H:%M') if evt.timestamp else '—' }}</td>
+                        <td>
+                            {% if evt.event_action == 'Intento Admin Anónimo' %}
+                            <span style="background:#fef2f2;color:#991b1b;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;">&#128123; Fantasma → Admin</span>
+                            {% elif evt.event_action == 'Acceso Denegado Admin' %}
+                            <span style="background:#fef3c7;color:#92400e;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;">&#9888; Usuario → Admin</span>
+                            {% else %}
+                            <span style="font-size:0.78rem;">{{ evt.event_action }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.78rem;">
+                            {% if evt.user_id %}
+                            <span style="font-weight:600;">ID {{ evt.user_id }}</span>
+                            {% else %}
+                            <span style="color:#991b1b;font-weight:600;">An&oacute;nimo</span>
+                            {% endif %}
+                            {% if evt.ip_address %}
+                            <br><span style="color:#6b7280;font-size:0.72rem;">{{ evt.ip_address }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.72rem;color:#6b7280;max-width:250px;overflow:hidden;text-overflow:ellipsis;">
+                            {% if evt.user_agent %}
+                            <span title="{{ evt.user_agent }}">{{ evt.user_agent[:80] }}{% if evt.user_agent|length > 80 %}...{% endif %}</span>
+                            {% endif %}
+                            {% if evt.metadata_json %}
+                            <br><code style="font-size:0.68rem;background:#f3f4f6;padding:0.1rem 0.3rem;border-radius:3px;">{{ evt.metadata_json }}</code>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:1rem 0;">No hay alertas de seguridad registradas.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-section">
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2 style="margin:0;">Módulo Beta — Feedback y Métricas</h2>
+            <button class="csv-export-btn" onclick="loadBetaData()" style="cursor:pointer;">Actualizar</button>
+        </div>
+
+        <div id="betaMetricsCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.8rem;margin-bottom:1.2rem;">
+            <div id="cardSessions" style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;cursor:help;" title="Sesiones únicas (logueado=user_id, anónimo=session_id)">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Sesiones</div>
+                <div id="betaSessions" style="font-size:1.4rem;font-weight:700;color:#374151;">—</div>
+                <div id="betaSessionsSub" style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+            <div id="cardPageEnters" style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;cursor:help;">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Vistas Página</div>
+                <div id="betaPageEnters" style="font-size:1.4rem;font-weight:700;color:#374151;">—</div>
+                <div id="betaPageEntersSub" style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+            <div id="cardGenerations" style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;cursor:help;">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Generaciones</div>
+                <div id="betaGenerations" style="font-size:1.4rem;font-weight:700;color:#16a34a;">—</div>
+                <div id="betaGenerationsSub" style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+            <div id="cardDownloads" style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;cursor:help;">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Descargas</div>
+                <div id="betaDownloads" style="font-size:1.4rem;font-weight:700;color:#2563eb;">—</div>
+                <div id="betaDownloadsSub" style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+            <div id="cardAbandonments" style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;cursor:help;">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Abandonos</div>
+                <div id="betaAbandonments" style="font-size:1.4rem;font-weight:700;color:#dc2626;">—</div>
+                <div id="betaAbandonmentsSub" style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+            <div style="background:#f9fafb;padding:0.8rem;border-radius:8px;text-align:center;" title="Promedio de segundos entre la primera vista y la primera generación.">
+                <div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;font-weight:600;">Tiempo 1ª Gen (s)</div>
+                <div id="betaAvgTime" style="font-size:1.4rem;font-weight:700;color:#d97706;">—</div>
+                <div style="font-size:0.68rem;color:#9ca3af;margin-top:2px;">&nbsp;</div>
+            </div>
+        </div>
+
+        <h3 style="font-size:0.9rem;color:#374151;margin:1.2rem 0 0.5rem;">Embudo por Elemento</h3>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Elemento</th>
+                        <th style="text-align:right;">Entradas</th>
+                        <th style="text-align:right;">Rebote %</th>
+                        <th style="text-align:right;">Generaciones</th>
+                        <th style="text-align:right;">Descargas</th>
+                        <th style="text-align:right;">Conversión %</th>
+                    </tr>
+                </thead>
+                <tbody id="betaElementBody">
+                    <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:1rem;">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="font-size:0.9rem;color:#374151;margin:1.4rem 0 0.5rem;">Observaciones y Sugerencias</h3>
+        <div id="insightsSummary" style="font-size:0.78rem;color:#6b7280;margin-bottom:0.6rem;">Evaluando reglas...</div>
+        <div id="insightsCards" style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.2rem;"></div>
+
+        <h3 style="font-size:0.9rem;color:#374151;margin:1rem 0 0.5rem;">Retroalimentación de Usuarios</h3>
+        <div class="admin-table-wrap">
+            <table class="admin-table" id="betaFeedbackTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Rating</th>
+                        <th>Comentario</th>
+                        <th>Página</th>
+                        <th>Elemento</th>
+                    </tr>
+                </thead>
+                <tbody id="betaFeedbackBody">
+                    <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:1rem;">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function _esc(s) {
+    if (s === null || s === undefined || s === '') return '—';
+    var d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+}
+
+function _applyBreakdown(cardId, subId, breakdown, type) {
+    var info = (breakdown && breakdown[type]) || {total:0, logueados:0, anonimos:0};
+    var total = info.total || 0;
+    var log = info.logueados || 0;
+    var ano = info.anonimos || 0;
+    var pctAno = total > 0 ? Math.round((ano/total)*100) : 0;
+    var card = document.getElementById(cardId);
+    if (card) {
+        card.title = 'Total: ' + total + '\nLogueados: ' + log + '\nAnónimos: ' + ano + ' (' + pctAno + '%)';
+    }
+    var sub = document.getElementById(subId);
+    if (sub) {
+        if (total === 0) { sub.textContent = '\u00A0'; return; }
+        sub.innerHTML = '<span style="color:#1e40af;">' + log + ' log</span> · <span style="color:#92400e;">' + ano + ' anón</span>';
+    }
+}
+
+function _renderElementTable(rows) {
+    var tbody = document.getElementById('betaElementBody');
+    if (!tbody) return;
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:1rem;">Sin datos por elemento aún.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(function(r) {
+        var rebColor = r.rebote_pct >= 80 ? '#dc2626' : (r.rebote_pct >= 60 ? '#d97706' : '#16a34a');
+        var convColor = r.conversion_pct >= 10 ? '#16a34a' : (r.conversion_pct >= 3 ? '#d97706' : '#dc2626');
+        return '<tr>' +
+            '<td><strong>E' + _esc(r.element_num) + '</strong></td>' +
+            '<td style="text-align:right;">' + _esc(r.entradas) + '</td>' +
+            '<td style="text-align:right;color:' + rebColor + ';font-weight:600;">' + _esc(r.rebote_pct) + '%</td>' +
+            '<td style="text-align:right;">' + _esc(r.generaciones) + '</td>' +
+            '<td style="text-align:right;">' + _esc(r.descargas) + '</td>' +
+            '<td style="text-align:right;color:' + convColor + ';font-weight:600;">' + _esc(r.conversion_pct) + '%</td>' +
+        '</tr>';
+    }).join('');
+}
+
+function _renderInsights(payload) {
+    var sumEl = document.getElementById('insightsSummary');
+    var cardsEl = document.getElementById('insightsCards');
+    if (!cardsEl) return;
+    if (!payload || !payload.cards) {
+        if (sumEl) sumEl.textContent = 'No fue posible cargar las observaciones.';
+        cardsEl.innerHTML = '';
+        return;
+    }
+    var s = payload.summary || {critical:0, warning:0, info:0};
+    if (sumEl) {
+        sumEl.innerHTML =
+            '<span style="color:#dc2626;font-weight:700;">' + s.critical + ' críticas</span> · ' +
+            '<span style="color:#d97706;font-weight:700;">' + s.warning + ' advertencias</span> · ' +
+            '<span style="color:#2563eb;font-weight:700;">' + s.info + ' informativas</span>';
+    }
+    if (payload.cards.length === 0) {
+        cardsEl.innerHTML = '<div style="padding:0.8rem;background:#dcfce7;border-radius:8px;color:#166534;">Sin observaciones que reportar. Todas las métricas dentro de rangos sanos.</div>';
+        return;
+    }
+    var sevStyle = {
+        critical: {bg:'#fef2f2', border:'#dc2626', tag:'background:#dc2626;color:#fff;', label:'CRÍTICA'},
+        warning:  {bg:'#fffbeb', border:'#d97706', tag:'background:#d97706;color:#fff;', label:'ADVERTENCIA'},
+        info:     {bg:'#eff6ff', border:'#2563eb', tag:'background:#2563eb;color:#fff;', label:'INFO'}
+    };
+    cardsEl.innerHTML = payload.cards.map(function(c) {
+        var st = sevStyle[c.severity] || sevStyle.info;
+        var props = (c.proposals && c.proposals.length)
+            ? '<ul style="margin:0.4rem 0 0;padding-left:1.2rem;">' + c.proposals.map(function(p){return '<li style="margin-bottom:0.2rem;">' + _esc(p) + '</li>';}).join('') + '</ul>'
+            : '';
+        var obsHtml = _esc(c.observation || '').replace(/\n/g, '<br>');
+        return '<div style="background:' + st.bg + ';border-left:4px solid ' + st.border + ';padding:0.7rem 0.9rem;border-radius:4px;">' +
+            '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">' +
+                '<span style="display:inline-block;padding:1px 8px;border-radius:8px;font-size:0.65rem;font-weight:700;letter-spacing:0.5px;' + st.tag + '">' + st.label + '</span>' +
+                '<strong style="font-size:0.92rem;color:#111827;">' + _esc(c.title) + '</strong>' +
+            '</div>' +
+            '<div style="font-size:0.82rem;color:#374151;line-height:1.4;">' + obsHtml + '</div>' +
+            (props ? '<div style="font-size:0.78rem;color:#4b5563;margin-top:0.3rem;"><em>Propuestas:</em>' + props + '</div>' : '') +
+        '</div>';
+    }).join('');
+}
+
+async function loadBetaData() {
+    try {
+        var [metricsResp, feedbackResp, insightsResp] = await Promise.all([
+            fetch('/api/admin/beta_metrics'),
+            fetch('/api/admin/beta_feedback'),
+            fetch('/api/admin/insights')
+        ]);
+        var metrics = await metricsResp.json();
+        var feedback = await feedbackResp.json();
+        var insights = await insightsResp.json();
+
+        document.getElementById('betaSessions').textContent = metrics.total_sessions || 0;
+        document.getElementById('betaPageEnters').textContent = metrics.page_enters || 0;
+        document.getElementById('betaGenerations').textContent = metrics.generations || 0;
+        document.getElementById('betaDownloads').textContent = metrics.downloads || 0;
+        document.getElementById('betaAbandonments').textContent = metrics.abandonments || 0;
+        document.getElementById('betaAvgTime').textContent = metrics.avg_time_to_first_gen_seconds || '—';
+
+        var bd = metrics.breakdown || {};
+        var sessBd = {sessions: metrics.sessions_breakdown || {total:0, logueados:0, anonimos:0}};
+        _applyBreakdown('cardSessions',     'betaSessionsSub',     sessBd, 'sessions');
+        _applyBreakdown('cardPageEnters',   'betaPageEntersSub',   bd, 'page_enter');
+        _applyBreakdown('cardGenerations',  'betaGenerationsSub',  bd, 'generation_complete');
+        _applyBreakdown('cardDownloads',    'betaDownloadsSub',    bd, 'download_click');
+        _applyBreakdown('cardAbandonments', 'betaAbandonmentsSub', bd, 'page_leave_no_action');
+
+        _renderElementTable(metrics.element_table || []);
+        _renderInsights(insights);
+
+        var tbody = document.getElementById('betaFeedbackBody');
+        if (feedback.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:1rem;">Sin retroalimentación aún.</td></tr>';
+            return;
+        }
+        var ratingEmojis = {1:'😕',2:'😕',3:'😐',4:'😊',5:'😊'};
+        tbody.innerHTML = feedback.map(function(fb) {
+            return '<tr>' +
+                '<td style="font-size:0.78rem;white-space:nowrap;">' + _esc(fb.date) + '</td>' +
+                '<td style="font-size:0.78rem;">' + _esc(fb.user || 'Anónimo') + '</td>' +
+                '<td style="font-size:1.1rem;text-align:center;">' + (fb.rating ? (ratingEmojis[fb.rating] || _esc(fb.rating)) : '—') + '</td>' +
+                '<td style="font-size:0.78rem;max-width:250px;overflow:hidden;text-overflow:ellipsis;">' + _esc(fb.comment) + '</td>' +
+                '<td style="font-size:0.72rem;color:#6b7280;">' + _esc(fb.page) + '</td>' +
+                '<td style="font-size:0.78rem;text-align:center;">' + _esc(fb.element_num) + '</td>' +
+                '</tr>';
+        }).join('');
+    } catch(e) {
+        console.error('Error cargando datos beta:', e);
+    }
+}
+document.addEventListener('DOMContentLoaded', loadBetaData);
+</script>
+
+<script>
+async function updateIssueStatus(issueId, newStatus) {
+    try {
+        var resp = await fetch('/api/admin/ad-issues/' + issueId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        var data = await resp.json();
+        if (!data.success) alert(data.error || 'Error al actualizar.');
+    } catch (err) {
+        alert('Error de conexi\u00f3n.');
+    }
+}
+
+async function loadEmailLogs() {
+    var status = document.getElementById('elFilterStatus').value;
+    var etype = document.getElementById('elFilterType').value;
+    var uid = document.getElementById('elFilterUserId').value;
+    var days = document.getElementById('elFilterDays').value;
+    var qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (etype) qs.set('type', etype);
+    if (uid) qs.set('user_id', uid);
+    if (days) qs.set('days', days);
+    var tbody = document.getElementById('emailLogsBody');
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:14px; text-align:center; color:#6b7280;">Cargando…</td></tr>';
+    try {
+        var resp = await fetch('/api/admin/email_logs?' + qs.toString());
+        var data = await resp.json();
+        document.getElementById('statSent').textContent = data.totals_24h.sent;
+        document.getElementById('statFailed').textContent = data.totals_24h.failed;
+        document.getElementById('statPending').textContent = data.totals_24h.pending;
+        if (!data.items || !data.items.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding:14px; text-align:center; color:#6b7280;">Sin registros</td></tr>';
+            return;
+        }
+        function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+        var statusBadge = function(s) {
+            var colors = { sent:'#dcfce7|#166534', failed:'#fee2e2|#991b1b', pending:'#fef3c7|#92400e' };
+            var c = (colors[s] || '#e5e7eb|#374151').split('|');
+            return '<span style="background:'+c[0]+'; color:'+c[1]+'; padding:2px 8px; border-radius:999px; font-size:0.78em;">'+esc(s)+'</span>';
+        };
+        tbody.innerHTML = data.items.map(function(it) {
+            var u = it.user_info ? (esc(it.user_info.email) + ' (' + esc(it.user_info.tier) + ')') : (it.user_id ? '#' + it.user_id : 'Anónimo');
+            var subj = esc(it.document_filename || it.subject || '—');
+            var err = it.status === 'failed' ? esc(it.error_message || '—') : esc(it.smtp_response || '—');
+            var actionBtn = (it.status === 'failed' && it.type === 'document' && it.document_filename)
+                ? '<button onclick="retryEmailLog('+it.id+')" style="padding:4px 10px; background:#7c3aed; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.8em;">Reenviar</button>'
+                : (it.user_id ? '<button onclick="resendDocs('+it.user_id+')" style="padding:4px 10px; background:#0891b2; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.8em;">Reenviar último</button>' : '—');
+            return '<tr>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; white-space:nowrap; font-size:0.8em;">'+esc(it.attempted_at)+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; font-size:0.8em;">'+esc(it.type)+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; font-size:0.8em;">'+esc(it.recipient)+'<br><span style="color:#6b7280;font-size:0.85em;">'+u+'</span></td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; font-size:0.78em; max-width:280px; overflow:hidden; text-overflow:ellipsis;">'+subj+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6;">'+statusBadge(it.status)+(it.retry_count?' <span style="color:#6b7280;font-size:0.75em;">×'+it.retry_count+'</span>':'')+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; font-size:0.78em;">'+(it.opened_at ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;">Abierto</span><br><span style="color:#6b7280;font-size:0.85em;">'+esc(it.opened_at)+(it.open_count>1?' (×'+it.open_count+')':'')+'</span>' : '<span style="color:#9ca3af;">—</span>')+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; font-size:0.75em; color:#6b7280; max-width:280px; overflow:hidden; text-overflow:ellipsis;">'+err+'</td>' +
+                '<td style="padding:6px; border-bottom:1px solid #f3f4f6; text-align:center;">'+actionBtn+'</td>' +
+                '</tr>';
+        }).join('');
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:14px; text-align:center; color:#dc2626;">Error: '+e.message+'</td></tr>';
+    }
+}
+async function retryEmailLog(logId) {
+    if (!confirm('¿Reenviar este correo?')) return;
+    try {
+        var resp = await fetch('/api/admin/email_logs/'+logId+'/retry', { method:'POST' });
+        var data = await resp.json();
+        if (data.success) { alert('Reenviado correctamente.'); loadEmailLogs(); }
+        else { alert(data.error || 'Falló el reenvío.'); }
+    } catch(e) { alert('Error de conexión.'); }
+}
+async function resendDocs(userId) {
+    if (!confirm('¿Reenviar el último documento generado por este usuario a su correo?')) return;
+    try {
+        var resp = await fetch('/api/admin/resend_documents/'+userId, { method:'POST' });
+        var data = await resp.json();
+        if (data.success) { alert('Reenviado a ' + data.recipient + ' (' + data.filename + ').'); loadEmailLogs(); }
+        else { alert(data.error || 'Falló el reenvío.'); }
+    } catch(e) { alert('Error de conexión.'); }
+}
+document.addEventListener('DOMContentLoaded', loadEmailLogs);
+
+function escReen(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+async function loadReengagePreview() {
+    var tbody = document.getElementById('reengageBody');
+    var status = document.getElementById('reengageStatus');
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">Calculando elegibles…</td></tr>';
+    status.textContent = 'Calculando…';
+    try {
+        var resp = await fetch('/api/admin/reengagement/preview');
+        var data = await resp.json();
+        if (!data.campaigns) {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#dc2626;">'+(data.error||'Error')+'</td></tr>';
+            return;
+        }
+        var totalE = 0;
+        tbody.innerHTML = data.campaigns.map(function(c) {
+            totalE += c.eligible_count;
+            var sample = (c.sample||[]).map(function(u){
+                return '<div style="font-size:0.78em;color:#374151;">#'+u.id+' '+escReen(u.email)+' <span style="color:#6b7280;">('+escReen(u.tier)+')</span></div>';
+            }).join('') || '<span style="color:#9ca3af;font-size:0.78em;">Sin elegibles</span>';
+            var sendBtn = c.eligible_count > 0
+                ? (c.gate_active
+                    ? '<button disabled title="Gate activo hasta '+escReen(c.enabled_from||'')+' UTC" style="padding:5px 10px;background:#9ca3af;color:#fff;border:none;border-radius:5px;cursor:not-allowed;font-size:0.78em;">🔒 Gate</button>'
+                    : '<button onclick="runOneReengage(\''+c.campaign_key+'\', '+c.eligible_count+')" style="padding:5px 10px;background:#7c3aed;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.8em;">Enviar ahora</button>')
+                : '—';
+            var previewBtn = '<button onclick="openReengagePreview(\''+c.campaign_key+'\',\''+escReen(c.label).replace(/\'/g,"&#39;")+'\')" style="padding:5px 10px;background:#0891b2;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:0.78em;margin-right:4px;" title="Ver HTML del correo">👁 Vista previa</button>';
+            var subjectCell = escReen(c.subject);
+            if (c.subject_variants && c.subject_variants.length > 1) {
+                subjectCell = '<div style="color:#1f2937;">'+escReen(c.subject_variants[0])+'</div>'
+                    + '<div style="color:#7c3aed;font-size:0.85em;margin-top:3px;">A/B · '+escReen(c.subject_variants[1])+'</div>';
+            }
+            var gateBadge = c.gate_active
+                ? '<div style="background:#fef3c7;color:#92400e;font-size:0.7em;padding:2px 6px;border-radius:4px;margin-top:3px;display:inline-block;">🔒 Gate hasta '+escReen((c.enabled_from||'').replace('T',' '))+' UTC</div>'
+                : '';
+            return '<tr>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#1f2937;" title="'+escReen(c.campaign_key)+'">'+escReen(c.label)+'<br><span style="color:#9ca3af;font-size:0.72em;font-weight:normal;font-family:monospace;">'+escReen(c.campaign_key)+'</span>'+gateBadge+'</td>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-size:0.82em;color:#374151;max-width:280px;">'+subjectCell+'</td>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-size:0.82em;color:#6b7280;text-align:center;">'+c.cooldown_days+' d</td>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:1.1em;font-weight:700;color:'+(c.eligible_count>0?'#16a34a':'#9ca3af')+';">'+c.eligible_count+'</td>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;">'+sample+'</td>'
+                + '<td style="padding:8px;border-bottom:1px solid #f3f4f6;text-align:center;white-space:nowrap;">'+previewBtn+sendBtn+'</td>'
+                + '</tr>';
+        }).join('');
+        status.textContent = 'Total elegibles ahora: '+totalE+' usuarios. Última actualización: '+new Date().toLocaleString('es-MX');
+        loadReengageDashboard();
+        loadRecentSends();
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#dc2626;">Error: '+e.message+'</td></tr>';
+        status.textContent = 'Error de conexión';
+    }
+}
+async function _pollReengageStatus() {
+    var status = document.getElementById('reengageStatus');
+    for (var i = 0; i < 60; i++) {
+        await new Promise(function(r){ setTimeout(r, 3000); });
+        try {
+            var s = await (await fetch('/api/admin/reengagement/status')).json();
+            if (!s.running) {
+                var summary = (s.last_results||[]).map(function(r){
+                    if (r.error) return 'ERROR: '+r.error;
+                    return r.campaign_key+': '+r.sent+' enviados ('+r.skipped+' omitidos)';
+                }).join('\n');
+                status.textContent = 'Última corrida finalizada: '+(s.started_at||'')+' — '+(s.mode||'');
+                alert('Resultados:\n\n'+(summary||'(sin resultados)'));
+                loadReengagePreview();
+                loadEmailLogs();
+                return;
+            } else {
+                status.textContent = 'Ejecutando ('+(s.mode||'')+')… iniciado '+(s.started_at||'');
+            }
+        } catch(e) {}
+    }
+    status.textContent = 'Timeout esperando fin de corrida (revisa email logs).';
+}
+async function runOneReengage(key, count) {
+    if (!confirm('Enviar campaña "'+key+'" a '+count+' usuario(s) ahora?')) return;
+    try {
+        var resp = await fetch('/api/admin/reengagement/run', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({campaign_key: key})
+        });
+        var data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        document.getElementById('reengageStatus').textContent = 'Encolada campaña '+key+'…';
+        _pollReengageStatus();
+    } catch(e) { alert('Error: '+e.message); }
+}
+async function runAllReengage() {
+    if (!confirm('Ejecutar TODAS las campañas de re-engagement ahora? Esta acción enviará correos reales.')) return;
+    document.getElementById('reengageStatus').textContent = 'Encolando todas las campañas…';
+    try {
+        var resp = await fetch('/api/admin/reengagement/run', {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})
+        });
+        var data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        _pollReengageStatus();
+    } catch(e) { alert('Error: '+e.message); }
+}
+document.addEventListener('DOMContentLoaded', loadReengagePreview);
+
+function openReengagePreview(key, label) {
+    var modal = document.getElementById('reengagePreviewModal');
+    var frame = document.getElementById('reengagePreviewFrame');
+    var title = document.getElementById('reengagePreviewTitle');
+    title.textContent = 'Vista previa: ' + label;
+    frame.src = '/api/admin/reengagement/preview_html/' + encodeURIComponent(key) + '?t=' + Date.now();
+    modal.style.display = 'flex';
+}
+(function(){
+    var m = document.getElementById('reengagePreviewModal');
+    if (m) m.addEventListener('click', function(e){ if (e.target === m) m.style.display='none'; });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && m && m.style.display==='flex') m.style.display='none'; });
+})();
+
+async function loadReengageDashboard() {
+    var box = document.getElementById('reengageDashboard');
+    if (!box) return;
+    try {
+        var resp = await fetch('/api/admin/reengagement/metrics');
+        var d = await resp.json();
+        if (!d.campaigns) { box.innerHTML = ''; return; }
+        var html = '';
+        Object.keys(d.campaigns).forEach(function(k){
+            var c = d.campaigns[k];
+            var w30 = c.windows['30d'];
+            var w7 = c.windows['7d'];
+            var w90 = c.windows['90d'];
+            var rateColor = w30.open_rate_pct >= 25 ? '#16a34a' : (w30.open_rate_pct >= 8 ? '#d97706' : '#9ca3af');
+            html += '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;">'
+                + '<div style="font-size:0.78em;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;" title="'+escReen(k)+'">'+escReen(c.label)+'</div>'
+                + '<div style="font-size:1.6em;font-weight:800;color:'+rateColor+';margin-top:4px;">'+w30.open_rate_pct+'%</div>'
+                + '<div style="font-size:0.72em;color:#6b7280;">open rate 30d · '+w30.opened+'/'+w30.sent+' abiertos</div>'
+                + '<div style="font-size:0.7em;color:#9ca3af;margin-top:4px;">7d: '+w7.sent+' env · 90d: '+w90.sent+' env</div>'
+                + '<div style="font-size:0.72em;color:#374151;margin-top:6px;padding:5px 7px;background:#fff;border:1px dashed #e5e7eb;border-radius:5px;line-height:1.35;">💡 '+escReen(c.recommendation)+'</div>'
+                + '</div>';
+        });
+        box.innerHTML = html;
+    } catch(e) { box.innerHTML = '<div style="color:#dc2626;font-size:0.85em;">Error métricas: '+e.message+'</div>'; }
+}
+
+var _recentSendsCache = [];
+var _recentSendsSort = { key: 'attempted_at', dir: -1 };
+function _renderRecentSends() {
+    var tbody = document.getElementById('recentSendsBody');
+    var q = (document.getElementById('recentSendsSearch').value || '').toLowerCase().trim();
+    var rows = _recentSendsCache.filter(function(r){
+        if (!q) return true;
+        return (String(r.user_id||'').indexOf(q) >= 0)
+            || (r.name||'').toLowerCase().indexOf(q) >= 0
+            || (r.email||'').toLowerCase().indexOf(q) >= 0
+            || (r.campaign_label||'').toLowerCase().indexOf(q) >= 0
+            || (r.campaign_key||'').toLowerCase().indexOf(q) >= 0;
+    });
+    var k = _recentSendsSort.key, dir = _recentSendsSort.dir;
+    rows.sort(function(a,b){
+        var av = (a[k]||''), bv = (b[k]||'');
+        if (av < bv) return -1*dir; if (av > bv) return 1*dir; return 0;
+    });
+    document.getElementById('recentSendsCount').textContent = rows.length + ' / ' + _recentSendsCache.length + ' envíos';
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">Sin envíos que coincidan.</td></tr>';
+        return;
+    }
+    var statusPill = function(s){
+        var c = (s==='sent')?'#dcfce7|#166534':(s==='failed')?'#fee2e2|#991b1b':'#fef3c7|#92400e';
+        var p = c.split('|');
+        return '<span style="background:'+p[0]+';color:'+p[1]+';padding:2px 8px;border-radius:999px;font-size:0.78em;">'+escReen(s)+'</span>';
+    };
+    tbody.innerHTML = rows.map(function(r){
+        var who = escReen(r.name || '—') + (r.tier?' <span style="color:#9ca3af;font-size:0.85em;">('+escReen(r.tier)+')</span>':'') + (r.user_id?' <span style="color:#9ca3af;font-size:0.78em;">#'+r.user_id+'</span>':'');
+        return '<tr>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;white-space:nowrap;font-size:0.82em;">'+escReen(r.attempted_at||'')+'</td>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;font-size:0.82em;" title="'+escReen(r.campaign_key)+'">'+escReen(r.campaign_label)+'</td>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;font-size:0.82em;">'+who+'</td>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;font-size:0.82em;color:#374151;">'+escReen(r.email||'')+'</td>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;text-align:center;">'+statusPill(r.status||'')+'</td>'
+            + '<td style="padding:5px 6px;border-bottom:1px solid #f3f4f6;font-size:0.8em;color:'+(r.opened_at?'#166534':'#9ca3af')+';">'+(r.opened_at?'✓ '+escReen(r.opened_at):'—')+'</td>'
+            + '</tr>';
+    }).join('');
+}
+async function loadRecentSends() {
+    var tbody = document.getElementById('recentSendsBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">Cargando…</td></tr>';
+    try {
+        var resp = await fetch('/api/admin/reengagement/recent_sends');
+        var d = await resp.json();
+        _recentSendsCache = d.items || [];
+        _renderRecentSends();
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#dc2626;">Error: '+e.message+'</td></tr>'; }
+}
+(function(){
+    var s = document.getElementById('recentSendsSearch');
+    if (s) s.addEventListener('input', _renderRecentSends);
+    var t = document.getElementById('recentSendsTable');
+    if (t) t.querySelectorAll('th[data-sort]').forEach(function(th){
+        th.addEventListener('click', function(){
+            var k = th.getAttribute('data-sort');
+            if (_recentSendsSort.key === k) _recentSendsSort.dir *= -1;
+            else { _recentSendsSort.key = k; _recentSendsSort.dir = -1; }
+            _renderRecentSends();
+        });
+    });
+})();
+
+async function eliminarAnuncio(adId) {
+    if (!confirm('¿Eliminar este anuncio? Esta acción no se puede deshacer.')) return;
+    try {
+        var resp = await fetch('/api/admin/ads/' + adId, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var row = document.getElementById('ad-row-' + adId);
+            if (row) row.remove();
+        } else { alert(data.error || 'Error al eliminar'); }
+    } catch(e) { alert('Error de conexión'); }
+}
+</script>
+
+<section style="background:#fff;border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.6rem;">
+        <h2 style="margin:0;font-size:1.15em;color:#1f2937;">🔎 SEO &amp; Tráfico Orgánico — EC0301 y EC0217.01</h2>
+        <button onclick="loadSeoMetrics()" style="background:#FA8072;color:#fff;border:none;padding:0.5rem 1rem;border-radius:6px;cursor:pointer;font-weight:600;">Actualizar</button>
+    </div>
+    <div id="seoMetricsHealth" style="margin-bottom:1rem;"></div>
+    <div id="seoMetricsCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.8rem;margin-bottom:1.2rem;"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
+        <div>
+            <h3 style="font-size:0.95rem;color:#374151;margin:0 0 0.5rem;">Top Landings (30 días)</h3>
+            <div id="seoTopLandings" style="font-size:0.85rem;"></div>
+        </div>
+        <div>
+            <h3 style="font-size:0.95rem;color:#374151;margin:0 0 0.5rem;">Conversión SEO → Registro (30 días)</h3>
+            <div id="seoConversion" style="font-size:0.85rem;"></div>
+        </div>
+    </div>
+    <details style="margin-top:1rem;">
+        <summary style="cursor:pointer;font-weight:600;color:#374151;">📘 Cómo dar de alta Search Console y Analytics 4</summary>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin-top:0.6rem;font-size:0.85rem;line-height:1.6;color:#374151;">
+            <p><strong>Google Search Console</strong> (para que Google indexe el sitio y sepas qué te buscan):</p>
+            <ol>
+                <li>Entra a <a href="https://search.google.com/search-console" target="_blank">search.google.com/search-console</a> con tu cuenta Google.</li>
+                <li>Agrega <em>Property</em> &rarr; <em>Prefijo de URL</em> con tu dominio (ej. <code>https://pertinentia.com</code>).</li>
+                <li>Elige método <strong>"Etiqueta HTML"</strong>. Te dará un <code>content="XXXXX"</code>.</li>
+                <li>Copia ese token y pégalo en la variable de entorno <code>GSC_VERIFICATION_TOKEN</code> (Secrets de Replit).</li>
+                <li>Reinicia la app. La etiqueta aparecerá automáticamente en todas las páginas.</li>
+                <li>En Search Console pulsa <em>Verify</em>.</li>
+                <li>Ve a <em>Sitemaps</em> y envía: <code>sitemap.xml</code></li>
+            </ol>
+            <p><strong>Google Analytics 4</strong> (para tráfico, eventos, conversiones):</p>
+            <ol>
+                <li>Entra a <a href="https://analytics.google.com" target="_blank">analytics.google.com</a> &rarr; <em>Admin</em> &rarr; <em>Crear Property</em> tipo GA4.</li>
+                <li>Crea un <em>Data Stream</em> de tipo Web con tu dominio.</li>
+                <li>Copia el <strong>Measurement ID</strong> (formato <code>G-XXXXXXXXXX</code>).</li>
+                <li>Pégalo en la variable de entorno <code>GA4_MEASUREMENT_ID</code>.</li>
+                <li>Reinicia la app. El snippet de gtag se inyecta automáticamente y empieza a registrar visitas.</li>
+            </ol>
+            <p style="margin-top:0.8rem;"><strong>Verificación rápida</strong>: arriba ves dos badges (GA4 y GSC) en verde si están configurados, gris si no.</p>
+        </div>
+    </details>
+</section>
+
+<script>
+async function loadSeoMetrics() {
+    try {
+        var resp = await fetch('/api/admin/seo/metrics');
+        var d = await resp.json();
+        var health = d.health || {};
+        var hh = '';
+        hh += '<span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700;margin-right:6px;background:'+(health.ga4_configured?'#dcfce7':'#f3f4f6')+';color:'+(health.ga4_configured?'#166534':'#6b7280')+';">GA4 '+(health.ga4_configured?'✓ activo':'✗ no configurado')+'</span>';
+        hh += '<span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700;margin-right:6px;background:'+(health.gsc_configured?'#dcfce7':'#f3f4f6')+';color:'+(health.gsc_configured?'#166534':'#6b7280')+';">Search Console '+(health.gsc_configured?'✓ activo':'✗ no configurado')+'</span>';
+        hh += '<span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700;background:#dcfce7;color:#166534;">'+(health.public_landings_count||0)+' landings públicas</span>';
+        hh += '<div style="margin-top:0.5rem;font-size:0.78rem;color:#6b7280;">Sitemap: <a href="'+(health.sitemap_url||'')+'" target="_blank">'+(health.sitemap_url||'')+'</a> · Robots: <a href="'+(health.robots_url||'')+'" target="_blank">'+(health.robots_url||'')+'</a></div>';
+        document.getElementById('seoMetricsHealth').innerHTML = hh;
+
+        var w = d.windows || {};
+        var card = function(label, lv, bv){
+            return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.8rem;text-align:center;"><div style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">'+label+'</div><div style="font-size:1.4rem;font-weight:800;color:#1f2937;margin-top:0.2rem;">'+lv+'</div><div style="font-size:0.7rem;color:#9ca3af;">visitas landings · '+bv+' blog</div></div>';
+        };
+        document.getElementById('seoMetricsCards').innerHTML =
+            card('24 horas', (w['24h']||{}).landing_views||0, (w['24h']||{}).blog_views||0)
+            + card('7 días', (w['7d']||{}).landing_views||0, (w['7d']||{}).blog_views||0)
+            + card('30 días', (w['30d']||{}).landing_views||0, (w['30d']||{}).blog_views||0);
+
+        var top = d.top_landings || [];
+        if (!top.length) {
+            document.getElementById('seoTopLandings').innerHTML = '<em style="color:#9ca3af;">Aún sin tráfico registrado.</em>';
+        } else {
+            var html = '<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f3f4f6;"><th style="text-align:left;padding:0.4rem;font-size:0.78rem;">Landing</th><th style="text-align:right;padding:0.4rem;font-size:0.78rem;">Visitas</th></tr></thead><tbody>';
+            top.forEach(function(r){
+                html += '<tr><td style="padding:0.4rem;border-bottom:1px solid #f3f4f6;"><a href="/'+r.slug+'" target="_blank" style="color:#FA8072;text-decoration:none;">/'+r.slug+'</a></td><td style="text-align:right;padding:0.4rem;border-bottom:1px solid #f3f4f6;font-weight:600;">'+r.views+'</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('seoTopLandings').innerHTML = html;
+        }
+
+        var c = d.conversions || {};
+        document.getElementById('seoConversion').innerHTML =
+            '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.8rem;">'
+            + '<div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;"><span>Visitas a landings</span><strong>'+(c['30d_landing_views']||0)+'</strong></div>'
+            + '<div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;"><span>Registros desde SEO</span><strong>'+(c['30d_registros_desde_seo']||0)+'</strong></div>'
+            + '<div style="display:flex;justify-content:space-between;border-top:1px solid #e5e7eb;padding-top:0.4rem;margin-top:0.4rem;"><span><strong>Tasa de conversión</strong></span><strong style="color:#FA8072;">'+(c.tasa_conversion_pct||0)+'%</strong></div>'
+            + '</div>';
+    } catch(e) {
+        document.getElementById('seoMetricsHealth').innerHTML = '<em style="color:#dc2626;">Error al cargar métricas SEO: '+e.message+'</em>';
+    }
+}
+document.addEventListener('DOMContentLoaded', loadSeoMetrics);
+</script>
+{% endblock %}

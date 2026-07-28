@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Uso de Fotos Pexels — Admin Pertinentia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#f9fafb; margin:0; padding:1.5rem; color:#111827; }
+  h1 { margin:0 0 0.3rem 0; font-size:1.5rem; }
+  .sub { color:#6b7280; font-size:0.85rem; margin-bottom:1.2rem; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.7rem; margin-bottom:1.2rem; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:0.9rem; }
+  .card .label { font-size:0.72rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em; font-weight:600; }
+  .card .val { font-size:1.5rem; font-weight:700; color:#111827; margin-top:0.2rem; }
+  .card .sub2 { font-size:0.72rem; color:#9ca3af; margin-top:0.2rem; }
+  .card.acc { border-left:4px solid #16a34a; }
+  .card.acc-blue { border-left:4px solid #2563eb; }
+  .card.acc-purple { border-left:4px solid #9333ea; }
+  .card.acc-amber { border-left:4px solid #d97706; }
+  .bar { height:8px; border-radius:6px; background:#e5e7eb; margin-top:0.5rem; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:#16a34a; }
+  .bar.warn > span { background:#d97706; }
+  .bar.crit > span { background:#dc2626; }
+  .panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem; }
+  .panel h2 { margin:0 0 0.7rem 0; font-size:1rem; color:#1f2937; }
+  table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+  th, td { padding:0.5rem 0.6rem; text-align:left; border-bottom:1px solid #f3f4f6; }
+  th { background:#f9fafb; font-weight:600; color:#374151; font-size:0.76rem; text-transform:uppercase; letter-spacing:0.03em; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .warnbox { background:#fef2f2; color:#991b1b; padding:0.8rem; border-radius:8px; border:1px solid #fecaca; margin-bottom:1rem; font-size:0.85rem; }
+  .okbox { background:#f0fdf4; color:#166534; padding:0.8rem; border-radius:8px; border:1px solid #bbf7d0; margin-bottom:1rem; font-size:0.85rem; }
+  a.back { color:#7c3aed; font-size:0.85rem; text-decoration:none; }
+  a { color:#2563eb; }
+  .mini { display:flex; align-items:flex-end; gap:3px; height:60px; }
+  .mini > div { flex:1; background:#c7d2fe; border-radius:2px 2px 0 0; min-height:2px; }
+</style>
+</head>
+<body>
+<a href="/admin-crm" class="back">← Volver al CRM</a>
+<h1>Uso de Fotos Pexels</h1>
+<p class="sub">Banco de imágenes profesionales usadas en las presentaciones generadas. Análisis costo-beneficio del plan gratuito.</p>
+
+{% if not s.has_api_key %}
+<div class="warnbox"><strong>Atención:</strong> no se detecta la llave de Pexels en el entorno. Las presentaciones se generarán sin fotos profesionales hasta configurarla.</div>
+{% else %}
+<div class="okbox">Conexión Pexels activa. Plan gratuito: hasta <strong>{{ s.monthly_limit }}</strong> imágenes/mes y <strong>{{ s.hourly_limit }}</strong>/hora, sin costo.</div>
+{% endif %}
+
+<div class="cards">
+  <div class="card acc">
+    <div class="label">Este mes</div>
+    <div class="val">{{ s.this_month }}</div>
+    <div class="sub2">de {{ s.monthly_limit }} ({{ s.monthly_pct }}%)</div>
+    <div class="bar {% if s.monthly_pct >= 90 %}crit{% elif s.monthly_pct >= 70 %}warn{% endif %}"><span style="width:{{ s.monthly_pct if s.monthly_pct <= 100 else 100 }}%"></span></div>
+  </div>
+  <div class="card acc-amber">
+    <div class="label">Última hora</div>
+    <div class="val">{{ s.last_hour }}</div>
+    <div class="sub2">de {{ s.hourly_limit }} ({{ s.hourly_pct }}%)</div>
+    <div class="bar {% if s.hourly_pct >= 90 %}crit{% elif s.hourly_pct >= 70 %}warn{% endif %}"><span style="width:{{ s.hourly_pct if s.hourly_pct <= 100 else 100 }}%"></span></div>
+  </div>
+  <div class="card acc-blue">
+    <div class="label">Restante este mes</div>
+    <div class="val">{{ s.monthly_remaining }}</div>
+    <div class="sub2">imágenes disponibles</div>
+  </div>
+  <div class="card acc-purple">
+    <div class="label">Últimas 24 h</div>
+    <div class="val">{{ s.last_24h }}</div>
+    <div class="sub2">{{ s.last_7d }} en 7 días</div>
+  </div>
+  <div class="card">
+    <div class="label">Total histórico</div>
+    <div class="val">{{ s.total }}</div>
+    <div class="sub2">imágenes insertadas</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Uso diario (últimos 30 días)</h2>
+  {% if s.by_day %}
+  <div class="mini">
+    {% set maxc = (s.by_day | map(attribute=1) | max) or 1 %}
+    {% for d, c in s.by_day %}
+    <div title="{{ d }}: {{ c }}" style="height:{{ (c * 100 / maxc) | round(0, 'ceil') }}%"></div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="sub">Aún no hay datos de uso registrados.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Términos de búsqueda más usados</h2>
+  {% if s.top_q %}
+  <table>
+    <thead><tr><th>Término</th><th class="num">Veces</th></tr></thead>
+    <tbody>
+      {% for q, c in s.top_q %}
+      <tr><td>{{ q }}</td><td class="num">{{ c }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="sub">Aún no hay datos.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Imágenes recientes</h2>
+  {% if s.recent %}
+  <table>
+    <thead><tr><th>Fecha</th><th>Término</th><th>Fotógrafo</th><th>Usuario</th><th>Foto</th></tr></thead>
+    <tbody>
+      {% for r in s.recent %}
+      <tr>
+        <td>{{ r.fecha }}</td>
+        <td>{{ r.query }}</td>
+        <td>{{ r.photographer }}</td>
+        <td class="num">{{ r.user_id or '—' }}</td>
+        <td>{% if r.photo_url %}<a href="{{ r.photo_url }}" target="_blank" rel="noopener">ver</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="sub">Aún no hay imágenes registradas. Genera una Presentación para empezar a poblar este panel.</p>
+  {% endif %}
+</div>
+
+</body>
+</html>

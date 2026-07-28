@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:#fff; border-radius:12px; padding:2rem; width:95%; max-width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+.modal-box h3 { margin:0 0 1.2rem; font-size:1.1rem; }
+.modal-field { margin-bottom:1rem; }
+.modal-field label { display:block; font-weight:600; font-size:0.82rem; color:#374151; margin-bottom:4px; }
+.modal-field input { width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:0.88rem; box-sizing:border-box; }
+.modal-actions { display:flex; gap:0.8rem; justify-content:flex-end; margin-top:1.2rem; }
+.modal-actions button { padding:9px 20px; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer; border:none; }
+.btn-cancel { background:#e5e7eb; color:#374151; }
+.btn-save { background:#16a34a; color:#fff; }
+@keyframes pulse-info { 0%,100% { transform:scale(1); opacity:0.85; } 50% { transform:scale(1.15); opacity:1; } }
+.info-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#3b82f6; color:#fff; font-size:0.75rem; font-weight:700; cursor:help; margin-left:8px; animation:pulse-info 2s ease-in-out infinite; position:relative; }
+.info-tooltip { display:none; position:absolute; top:32px; left:50%; transform:translateX(-50%); width:300px; background:#1e293b; color:#f1f5f9; padding:14px 16px; border-radius:10px; font-size:0.78rem; font-weight:400; line-height:1.5; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,0.25); }
+.info-badge:hover .info-tooltip { display:block; }
+.info-tooltip::before { content:''; position:absolute; top:-6px; left:50%; transform:translateX(-50%); border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:6px solid #1e293b; }
+.estatus-pendiente { color:#dc2626; font-weight:600; font-size:0.82rem; cursor:pointer; background:none; border:1px solid #fecaca; padding:5px 12px; border-radius:6px; }
+.estatus-completado { color:#16a34a; font-weight:600; font-size:0.82rem; cursor:pointer; background:none; border:1px solid #bbf7d0; padding:5px 12px; border-radius:6px; }
+.onboarding-banner { background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:1rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:flex-start; gap:0.8rem; }
+.onboarding-banner .banner-icon { font-size:1.4rem; flex-shrink:0; margin-top:2px; }
+.onboarding-banner p { margin:0; font-size:0.88rem; color:#1e40af; line-height:1.55; }
+</style>
+
+<div class="page-header">
+    <h1>Centro Evaluador IA</h1>
+    <p>Panel de gestión de tu Centro Evaluador EC0301</p>
+</div>
+
+{% if not ce_profile or not ce_profile.ce_name or not ce_profile.ce_key %}
+<div class="onboarding-banner" id="onboardingBanner">
+    <span class="banner-icon">&#128161;</span>
+    <p>Antes de generar documentos, configura la identidad de tu Centro aquí abajo. Los datos y el logotipo que agregues se incluirán automáticamente en todos tus documentos descargables.</p>
+</div>
+{% endif %}
+
+<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.6rem;">
+        <h2 style="margin:0;">Configuración de mi Centro Evaluador</h2>
+    </div>
+    <form id="ceProfileForm" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;">
+        <div style="grid-column:1/3;">
+            <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:4px;">Nombre del Centro Evaluador</label>
+            <input type="text" id="ce_name" value="{{ ce_profile.ce_name if ce_profile else '' }}" placeholder="Ej: Centro de Evaluación Profesional ABC" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+        </div>
+        <div>
+            <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:4px;">Clave del Centro Evaluador</label>
+            <input type="text" id="ce_key" value="{{ ce_profile.ce_key if ce_profile else '' }}" placeholder="Ej: CE-2026-001" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+        </div>
+        <div>
+            <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:4px;">Nombre del Evaluador</label>
+            <input type="text" id="evaluator_name" value="{{ ce_profile.evaluator_name if ce_profile else '' }}" placeholder="Ej: Lic. Juan Pérez López" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+        </div>
+        <div style="grid-column:1/3;">
+            <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:4px;">Logotipo del Centro Evaluador</label>
+            <div style="display:flex;align-items:center;gap:1rem;">
+                {% if ce_profile and ce_profile.logo_path %}
+                <img id="logoPreview" src="/{{ ce_profile.logo_path }}" alt="Logo CE" style="max-height:64px;max-width:180px;border-radius:6px;border:1px solid #d1d5db;object-fit:contain;">
+                {% else %}
+                <img id="logoPreview" src="" alt="" style="max-height:64px;max-width:180px;border-radius:6px;border:1px solid #d1d5db;object-fit:contain;display:none;">
+                {% endif %}
+                <div>
+                    <input type="file" id="logoFile" accept=".png,.jpg,.jpeg" style="font-size:0.82rem;" onchange="uploadLogo()">
+                    <p style="font-size:0.75rem;color:#6b7280;margin-top:4px;">Formatos: PNG, JPG. Se inyectará en los documentos generados.</p>
+                    <span id="logoUploadStatus" style="font-size:0.8rem;display:none;"></span>
+                </div>
+            </div>
+        </div>
+        <div style="grid-column:1/3;display:flex;align-items:center;gap:1rem;">
+            <button type="button" id="saveCeBtn" onclick="saveCeProfile()" style="background:#FA8072;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;">Guardar Configuración</button>
+            <span id="ceSaveStatus" style="font-size:0.85rem;color:#16a34a;display:none;"></span>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.8rem;">
+        <div style="display:flex;align-items:center;">
+            <h2 style="margin:0;">Mis Candidatos</h2>
+            <span class="info-badge">i
+                <span class="info-tooltip">
+                    <strong>Flujo del Evaluador:</strong><br>
+                    1. Registra a tu candidato con el botón verde.<br>
+                    2. Cambia el estatus de cada fase haciendo clic en el texto de la tabla.<br>
+                    3. Genera y descarga los documentos oficiales desde la columna de Acciones.
+                </span>
+            </span>
+        </div>
+        <button onclick="openModal()" style="background:#16a34a;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;">+ Registrar Nuevo Candidato</button>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Candidato</th>
+                    <th>CURP</th>
+                    <th>Auto-diagnóstico</th>
+                    <th>Plan de Evaluación</th>
+                    <th>Dictamen Competente</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="candidatosBody">
+                {% for c in candidatos %}
+                <tr id="row-{{ c.id }}">
+                    <td>{{ c.nombre_completo }} {{ c.apellidos }}</td>
+                    <td style="font-size:0.8rem;font-family:monospace;">{{ c.curp or '—' }}</td>
+                    <td>
+                        <button class="{{ 'estatus-completado' if c.estatus_autodiagnostico else 'estatus-pendiente' }}" id="eval-ad-{{ c.id }}" onclick="toggleCandEstatus({{ c.id }}, 'estatus_autodiagnostico')">
+                            {{ 'Completado' if c.estatus_autodiagnostico else 'Pendiente' }}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="{{ 'estatus-completado' if c.estatus_plan else 'estatus-pendiente' }}" id="eval-pe-{{ c.id }}" onclick="toggleCandEstatus({{ c.id }}, 'estatus_plan')">
+                            {{ 'Completado' if c.estatus_plan else 'Pendiente' }}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="{{ 'estatus-completado' if c.estatus_dictamen else 'estatus-pendiente' }}" id="eval-dc-{{ c.id }}" onclick="toggleCandEstatus({{ c.id }}, 'estatus_dictamen')">
+                            {{ 'Completado' if c.estatus_dictamen else 'Pendiente' }}
+                        </button>
+                    </td>
+                    <td style="min-width:170px;">
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <button class="admin-reset-btn" style="background:#2563eb;font-size:0.72rem;padding:4px 8px;" onclick='descargarExpediente({{ c.id }}, {{ (c.nombre_completo ~ " " ~ c.apellidos)|tojson }}, "plan", this)'>Plan de Evaluación</button>
+                            <button class="admin-reset-btn" style="background:#7c3aed;font-size:0.72rem;padding:4px 8px;" onclick='descargarExpediente({{ c.id }}, {{ (c.nombre_completo ~ " " ~ c.apellidos)|tojson }}, "portadas", this)'>Portadas</button>
+                            <button class="admin-reset-btn" style="background:#0891b2;font-size:0.72rem;padding:4px 8px;" onclick='descargarExpediente({{ c.id }}, {{ (c.nombre_completo ~ " " ~ c.apellidos)|tojson }}, "servicio", this)'>Servicio a Usuarios</button>
+                            <button class="admin-reset-btn" style="background:#ea580c;font-size:0.72rem;padding:4px 8px;" onclick='descargarExpediente({{ c.id }}, {{ (c.nombre_completo ~ " " ~ c.apellidos)|tojson }}, "encuesta", this)'>Encuesta Satisfacción</button>
+                            <button class="admin-reset-btn" style="background:#dc2626;font-size:0.72rem;padding:4px 8px;" onclick='eliminarCandidato({{ c.id }}, this)'>Eliminar</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if not candidatos %}
+        <div id="emptyState" style="text-align:center;padding:2rem;color:#94a3b8;">
+            <p style="font-size:0.9rem;">No hay candidatos registrados. Usa el botón verde para agregar tu primer candidato.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.6rem;">
+        <h2 style="margin:0;">Evaluación de Portafolio de Evidencias</h2>
+        <span class="info-badge">i
+            <span class="info-tooltip">
+                <strong>¿Qué hace?</strong><br>
+                PertinentIA actúa como un par del Evaluador: revisa la conformación del portafolio (responsabilidad del evaluador) y emite un dictamen técnico de competencia del candidato (según el IEC). La firma final ante CONOCER siempre la realiza el Evaluador acreditado.
+            </span>
+        </span>
+    </div>
+    <p style="font-size:0.85rem;color:#6b7280;margin:0 0 1rem 0;">Sube el portafolio integrado del candidato para que la IA lo audite contra la <em>Orden de Integración</em>, el <em>Ejemplo de Portafolio</em> y el <em>Instrumento de Evaluación</em> del estándar correspondiente.</p>
+
+    <details open style="border:1px solid #e5e7eb;border-radius:10px;padding:0.6rem 1rem;margin-bottom:0.8rem;background:#f9fafb;">
+        <summary style="cursor:pointer;font-weight:600;color:#1f2937;font-size:0.95rem;padding:6px 0;">📘 EC0301 — Diseño de cursos (productos + conocimientos)</summary>
+        <div style="padding-top:0.8rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;align-items:end;margin-bottom:0.8rem;">
+                <div>
+                    <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Candidato</label>
+                    <select id="pf_ec0301_candidato" style="width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;background:#fff;">
+                        <option value="">— Selecciona —</option>
+                        {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }} {{ c.apellidos }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">PDF del portafolio integrado</label>
+                    <input type="file" id="pf_ec0301_pdf" accept="application/pdf,.pdf" style="font-size:0.82rem;width:100%;">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;">
+                <button onclick="subirPortafolio('EC0301')" id="pf_ec0301_btn" style="background:#2563eb;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;">Cargar Portafolio</button>
+                <span id="pf_ec0301_status" style="font-size:0.82rem;"></span>
+            </div>
+            <p style="font-size:0.75rem;color:#9ca3af;margin-top:0.5rem;">Límite: 50 MB. Si necesitas más, avísanos.</p>
+            <div id="pf_ec0301_lista" style="margin-top:1rem;"></div>
+        </div>
+    </details>
+
+    <details style="border:1px solid #e5e7eb;border-radius:10px;padding:0.6rem 1rem;background:#f9fafb;">
+        <summary style="cursor:pointer;font-weight:600;color:#1f2937;font-size:0.95rem;padding:6px 0;">🎥 EC0217.01 — Impartición de cursos (desempeños + productos + conocimientos)</summary>
+        <div style="padding-top:0.8rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;align-items:end;margin-bottom:0.8rem;">
+                <div>
+                    <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Candidato</label>
+                    <select id="pf_ec0217_candidato" style="width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.88rem;background:#fff;">
+                        <option value="">— Selecciona —</option>
+                        {% for c in candidatos %}<option value="{{ c.id }}">{{ c.nombre_completo }} {{ c.apellidos }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">PDF del portafolio integrado</label>
+                    <input type="file" id="pf_ec0217_pdf" accept="application/pdf,.pdf" style="font-size:0.82rem;width:100%;">
+                </div>
+            </div>
+            <div style="margin-bottom:0.8rem;">
+                <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Transcripción de la sesión de impartición</label>
+                <textarea id="pf_ec0217_transcripcion" placeholder="Pega aquí el texto completo de la transcripción de la sesión del candidato..." style="width:100%;min-height:140px;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;box-sizing:border-box;"></textarea>
+                <p style="font-size:0.75rem;color:#9ca3af;margin:4px 0 8px;">¿No tienes la transcripción? Genérala desde CapCut, Word (Dictado) o cualquier herramienta de transcripción, y pégala aquí.</p>
+                <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:4px;">O bien — sube un archivo .txt o .docx</label>
+                <input type="file" id="pf_ec0217_transcripcion_file" accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="font-size:0.82rem;width:100%;">
+            </div>
+            <div style="display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;">
+                <button onclick="subirPortafolio('EC0217.01')" id="pf_ec0217_btn" style="background:#7c3aed;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;">Cargar Portafolio + Transcripción</button>
+                <span id="pf_ec0217_status" style="font-size:0.82rem;"></span>
+            </div>
+            <p style="font-size:0.75rem;color:#9ca3af;margin-top:0.5rem;">Límites: PDF 50 MB · Transcripción en texto, .txt o .docx.</p>
+            <div id="pf_ec0217_lista" style="margin-top:1rem;"></div>
+        </div>
+    </details>
+</div>
+
+<div id="normativeModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;max-width:520px;width:90%;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;">
+        <h2 style="text-align:center;color:#dc2626;margin-bottom:1rem;font-size:1.25rem;">AVISO LEGAL</h2>
+        <p style="font-size:0.92rem;line-height:1.7;text-align:justify;color:#374151;">Como Centro Evaluador Acreditado, aceptas que <strong>PertinentIA es exclusivamente una herramienta de apoyo</strong> y NO te exime del cumplimiento estricto de las Reglas Generales del SNC y los Manuales de Evaluación y Verificación del EC0076.</p>
+        <p style="font-size:0.85rem;line-height:1.6;text-align:justify;color:#6b7280;margin-top:0.75rem;">Al aceptar, reconoces que la responsabilidad del proceso de evaluación y certificación recae exclusivamente en el Centro Evaluador y sus evaluadores acreditados.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;align-items:center;">
+            <button id="acceptNormativeBtn" onclick="acceptNormative()" style="background:#16a34a;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;width:100%;max-width:320px;">Acepto mi responsabilidad normativa</button>
+            <button onclick="closeNormativeModal()" style="background:transparent;color:#6b7280;border:1px solid #d1d5db;padding:8px 20px;border-radius:8px;font-size:0.85rem;cursor:pointer;width:100%;max-width:320px;">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="candidatoModal">
+    <div class="modal-box">
+        <h3>Registrar Nuevo Candidato</h3>
+        <div class="modal-field">
+            <label>Nombre(s) *</label>
+            <input type="text" id="modal_nombre" placeholder="Ej: Juan Carlos">
+        </div>
+        <div class="modal-field">
+            <label>Apellidos</label>
+            <input type="text" id="modal_apellidos" placeholder="Ej: Pérez López">
+        </div>
+        <div class="modal-field">
+            <label>CURP</label>
+            <input type="text" id="modal_curp" placeholder="Ej: PELJ900101HDFRPN09" maxlength="18" style="text-transform:uppercase;">
+        </div>
+        <span id="modalError" style="color:#dc2626;font-size:0.82rem;display:none;"></span>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="btn-save" id="modalSaveBtn" onclick="guardarCandidato()">Guardar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var normativeAccepted = {{ 'true' if normative_accepted else 'false' }};
+
+function closeNormativeModal() {
+    document.getElementById('normativeModal').style.display = 'none';
+}
+
+async function acceptNormative() {
+    var acceptBtn = document.getElementById('acceptNormativeBtn');
+    acceptBtn.disabled = true;
+    acceptBtn.textContent = 'Procesando...';
+    try {
+        var resp = await fetch('/api/evaluator/accept_normative', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            normativeAccepted = true;
+            closeNormativeModal();
+            window.open('/api/evaluator/download_iec', '_blank');
+        }
+    } catch(e) {
+        acceptBtn.textContent = 'Error de conexión. Reintentar.';
+        acceptBtn.style.background = '#dc2626';
+        setTimeout(function() {
+            acceptBtn.textContent = 'Acepto mi responsabilidad normativa';
+            acceptBtn.style.background = '#16a34a';
+        }, 3000);
+    }
+    acceptBtn.disabled = false;
+}
+
+function openModal() {
+    document.getElementById('modal_nombre').value = '';
+    document.getElementById('modal_apellidos').value = '';
+    document.getElementById('modal_curp').value = '';
+    document.getElementById('modalError').style.display = 'none';
+    document.getElementById('candidatoModal').classList.add('active');
+}
+function closeModal() {
+    document.getElementById('candidatoModal').classList.remove('active');
+}
+
+async function guardarCandidato() {
+    var nombre = document.getElementById('modal_nombre').value.trim();
+    var apellidos = document.getElementById('modal_apellidos').value.trim();
+    var curp = document.getElementById('modal_curp').value.trim().toUpperCase();
+    var errEl = document.getElementById('modalError');
+    if (!nombre) {
+        errEl.textContent = 'El nombre es obligatorio.';
+        errEl.style.display = 'block';
+        return;
+    }
+    var btn = document.getElementById('modalSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    errEl.style.display = 'none';
+    try {
+        var resp = await fetch('/api/ce/candidatos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre_completo: nombre, apellidos: apellidos, curp: curp })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            closeModal();
+            location.reload();
+        } else {
+            errEl.textContent = data.error || 'Error al guardar';
+            errEl.style.display = 'block';
+        }
+    } catch(e) {
+        errEl.textContent = 'Error de conexión';
+        errEl.style.display = 'block';
+    }
+    btn.textContent = 'Guardar';
+    btn.disabled = false;
+}
+
+async function saveCeProfile() {
+    var btn = document.getElementById('saveCeBtn');
+    var status = document.getElementById('ceSaveStatus');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    status.style.display = 'none';
+    try {
+        var resp = await fetch('/api/ce/update_profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ce_name: document.getElementById('ce_name').value,
+                ce_key: document.getElementById('ce_key').value,
+                evaluator_name: document.getElementById('evaluator_name').value
+            })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            status.textContent = data.message;
+            status.style.color = '#16a34a';
+            status.style.display = 'inline';
+            var banner = document.getElementById('onboardingBanner');
+            if (banner && document.getElementById('ce_name').value.trim() && document.getElementById('ce_key').value.trim()) {
+                banner.style.display = 'none';
+            }
+            setTimeout(function() { status.style.display = 'none'; }, 4000);
+        } else {
+            status.textContent = data.error || 'Error al guardar';
+            status.style.color = '#dc2626';
+            status.style.display = 'inline';
+        }
+    } catch(e) {
+        status.textContent = 'Error de conexión';
+        status.style.color = '#dc2626';
+        status.style.display = 'inline';
+    }
+    btn.textContent = 'Guardar Configuración';
+    btn.disabled = false;
+}
+
+async function uploadLogo() {
+    var fileInput = document.getElementById('logoFile');
+    var status = document.getElementById('logoUploadStatus');
+    if (!fileInput.files.length) return;
+    var formData = new FormData();
+    formData.append('logo', fileInput.files[0]);
+    status.textContent = 'Subiendo...';
+    status.style.color = '#6b7280';
+    status.style.display = 'inline';
+    try {
+        var resp = await fetch('/api/ce/upload_logo', {
+            method: 'POST',
+            body: formData
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var preview = document.getElementById('logoPreview');
+            preview.src = data.logo_url + '?t=' + Date.now();
+            preview.style.display = 'block';
+            status.textContent = data.message;
+            status.style.color = '#16a34a';
+            setTimeout(function() { status.style.display = 'none'; }, 4000);
+        } else {
+            status.textContent = data.error || 'Error al subir';
+            status.style.color = '#dc2626';
+        }
+    } catch(e) {
+        status.textContent = 'Error de conexión';
+        status.style.color = '#dc2626';
+    }
+}
+
+var EVAL_LABELS = {
+    estatus_autodiagnostico: { prefix: 'eval-ad-' },
+    estatus_plan: { prefix: 'eval-pe-' },
+    estatus_dictamen: { prefix: 'eval-dc-' }
+};
+
+async function toggleCandEstatus(candId, field) {
+    try {
+        var resp = await fetch('/api/ce/candidatos/' + candId + '/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field: field })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var cfg = EVAL_LABELS[field];
+            var btn = document.getElementById(cfg.prefix + candId);
+            btn.textContent = data.value ? 'Completado' : 'Pendiente';
+            btn.className = data.value ? 'estatus-completado' : 'estatus-pendiente';
+        }
+    } catch(e) {
+        alert('Error de conexión');
+    }
+}
+
+async function eliminarCandidato(candId, btn) {
+    if (!confirm('¿Eliminar este candidato? Esta acción no se puede deshacer.')) return;
+    btn.disabled = true;
+    try {
+        var resp = await fetch('/api/ce/candidatos/' + candId, { method: 'DELETE' });
+        var data = await resp.json();
+        if (data.success) {
+            var row = document.getElementById('row-' + candId);
+            if (row) row.remove();
+        } else {
+            alert(data.error || 'Error al eliminar');
+            btn.disabled = false;
+        }
+    } catch(e) {
+        alert('Error de conexión');
+        btn.disabled = false;
+    }
+}
+
+var EXPEDIENTE_ROUTES = {
+    plan: '/api/evaluator/generar_plan',
+    portadas: '/api/evaluator/generar_portadas',
+    servicio: '/api/evaluator/generar_servicio',
+    encuesta: '/api/evaluator/generar_encuesta'
+};
+var EXPEDIENTE_NAMES = {
+    plan: 'Plan_Evaluacion',
+    portadas: 'Portadas',
+    servicio: 'Servicio_Usuarios',
+    encuesta: 'Encuesta_Satisfaccion'
+};
+
+function descargarExpediente(candId, nombre, tipo, btn) {
+    var originalText = btn.innerHTML;
+    var originalBg = btn.style.background;
+    btn.innerHTML = 'Generando...';
+    btn.disabled = true;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', EXPEDIENTE_ROUTES[tipo], true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.responseType = 'blob';
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var contentType = xhr.getResponseHeader('Content-Type') || '';
+            if (contentType.indexOf('application/json') !== -1) {
+                var reader = new FileReader();
+                reader.onload = function() {
+                    try {
+                        var errData = JSON.parse(reader.result);
+                        alert(errData.error || 'Error al generar');
+                    } catch(e) {
+                        alert('Error al generar el documento');
+                    }
+                    btn.innerHTML = originalText;
+                    btn.style.background = originalBg;
+                    btn.disabled = false;
+                };
+                reader.readAsText(xhr.response);
+                return;
+            }
+            var blob = xhr.response;
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = EXPEDIENTE_NAMES[tipo] + '_' + nombre.replace(/\s+/g, '_') + '.docx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            btn.innerHTML = 'Descargado';
+            btn.style.background = '#16a34a';
+            setTimeout(function() { btn.innerHTML = originalText; btn.style.background = originalBg; btn.disabled = false; }, 2500);
+        } else {
+            xhr.response.text().then(function(t) {
+                try { var e = JSON.parse(t); alert(e.error || 'Error'); } catch(x) { alert('Error al generar'); }
+            }).catch(function() { alert('Error al generar'); });
+            btn.innerHTML = 'Error';
+            btn.style.background = '#dc2626';
+            setTimeout(function() { btn.innerHTML = originalText; btn.style.background = originalBg; btn.disabled = false; }, 3000);
+        }
+    };
+
+    xhr.onerror = function() {
+        btn.innerHTML = 'Sin conexión';
+        btn.style.background = '#dc2626';
+        setTimeout(function() { btn.innerHTML = originalText; btn.style.background = originalBg; btn.disabled = false; }, 3000);
+    };
+
+    xhr.send(JSON.stringify({ candidato_id: candId }));
+}
+
+function _pfPrefix(estandar) { return estandar === 'EC0301' ? 'pf_ec0301' : 'pf_ec0217'; }
+function _pfFmtSize(bytes) {
+    if (!bytes) return '0 KB';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function subirPortafolio(estandar) {
+    var pref = _pfPrefix(estandar);
+    var candSel = document.getElementById(pref + '_candidato');
+    var pdfIn = document.getElementById(pref + '_pdf');
+    var btn = document.getElementById(pref + '_btn');
+    var statusEl = document.getElementById(pref + '_status');
+    var candId = candSel.value;
+    if (!candId) { statusEl.textContent = 'Selecciona un candidato.'; statusEl.style.color = '#dc2626'; return; }
+    if (!pdfIn.files || !pdfIn.files[0]) { statusEl.textContent = 'Adjunta el PDF del portafolio.'; statusEl.style.color = '#dc2626'; return; }
+
+    var fd = new FormData();
+    fd.append('candidato_id', candId);
+    fd.append('estandar', estandar);
+    fd.append('pdf', pdfIn.files[0]);
+
+    if (estandar === 'EC0217.01') {
+        var txtIn = document.getElementById('pf_ec0217_transcripcion');
+        var txtFileIn = document.getElementById('pf_ec0217_transcripcion_file');
+        var hasTxt = (txtIn.value || '').trim();
+        var hasFile = txtFileIn.files && txtFileIn.files[0];
+        if (!hasTxt && !hasFile) { statusEl.textContent = 'Pega la transcripción o sube un archivo .txt/.docx.'; statusEl.style.color = '#dc2626'; return; }
+        if (hasTxt) fd.append('transcripcion', hasTxt);
+        if (hasFile) fd.append('transcripcion_file', txtFileIn.files[0]);
+    }
+
+    btn.disabled = true; var oTxt = btn.textContent; btn.textContent = 'Subiendo...';
+    statusEl.textContent = ''; statusEl.style.color = '#6b7280';
+
+    try {
+        var resp = await fetch('/api/ce/portafolio/upload', { method: 'POST', body: fd });
+        var data = await resp.json();
+        if (!resp.ok) {
+            statusEl.textContent = '⚠️ ' + (data.error || 'Error');
+            statusEl.style.color = '#dc2626';
+        } else {
+            statusEl.textContent = '✅ ' + (data.mensaje || 'Cargado');
+            statusEl.style.color = '#16a34a';
+            pdfIn.value = '';
+            if (estandar === 'EC0217.01') {
+                document.getElementById('pf_ec0217_transcripcion').value = '';
+                document.getElementById('pf_ec0217_transcripcion_file').value = '';
+            }
+            await listarPortafolios(estandar, candId);
+        }
+    } catch (e) {
+        statusEl.textContent = '⚠️ Error de conexión';
+        statusEl.style.color = '#dc2626';
+    } finally {
+        btn.disabled = false; btn.textContent = oTxt;
+    }
+}
+
+function _pfEsc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function _pfStatusColor(s) {
+    if (s === 'autorizado') return '#16a34a';
+    if (s === 'integrado') return '#0891b2';
+    if (s === 'auditado') return '#7c3aed';
+    if (s === 'auditando') return '#f59e0b';
+    if (s === 'error') return '#dc2626';
+    return '#6b7280';
+}
+
+function _pfRenderResultado(ev, estandar, candId) {
+    var r = ev.resultado || null;
+    var html = '';
+    if (estandar === 'EC0217.01') {
+        if (ev.video_transcripcion || ev.video_procesado || ev.video_preview) {
+            html += '<div style="background:#eff6ff;border:1px solid #93c5fd;padding:0.8rem;border-radius:8px;margin-bottom:0.6rem;">';
+            html += '<div style="font-weight:600;font-size:0.88rem;color:#1e40af;margin-bottom:0.4rem;">📝 Transcripción de la impartición</div>';
+            html += '<div style="background:#fff;border:1px solid #bfdbfe;padding:0.55rem;border-radius:6px;font-size:0.78rem;">';
+            html += '<div style="color:#1e40af;font-weight:600;">✅ Transcripción registrada</div>';
+            if (ev.video_preview) html += '<div style="color:#374151;font-style:italic;margin-top:0.3rem;font-size:0.74rem;">"' + _pfEsc(ev.video_preview) + '…"</div>';
+            html += '</div>';
+            html += '</div>';
+        }
+    }
+    if (!r) {
+        return html + '<div style="background:#fef3c7;border:1px solid #fcd34d;padding:0.8rem;border-radius:8px;margin-top:0.6rem;">' +
+               '<p style="margin:0 0 0.6rem 0;font-size:0.85rem;color:#92400e;"><strong>Aún no auditado.</strong> Ejecuta la auditoría IA para detectar documentos faltantes según la Orden de Integración oficial.</p>' +
+               '<button onclick="auditarPortafolio(' + ev.id + ',\'' + estandar + '\',' + candId + ')" style="background:#7c3aed;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">🤖 Auditar conformación con IA</button>' +
+               '</div>';
+    }
+    html += '<div style="background:#f0fdf4;border:1px solid #86efac;padding:0.8rem;border-radius:8px;margin-top:0.6rem;">';
+    var pct = r.porcentaje_completitud || 0;
+    var pctColor = pct >= 100 ? '#16a34a' : (pct >= 70 ? '#f59e0b' : '#dc2626');
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">';
+    html += '<span style="font-weight:600;font-size:0.9rem;">Auditoría IA · Completitud: <span style="color:' + pctColor + ';">' + pct + '%</span></span>';
+    html += '<button onclick="auditarPortafolio(' + ev.id + ',\'' + estandar + '\',' + candId + ')" style="background:#fff;color:#7c3aed;border:1px solid #7c3aed;padding:4px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;">Re-auditar</button>';
+    html += '</div>';
+    if (r.observaciones_conformacion) {
+        html += '<p style="font-size:0.82rem;color:#374151;margin:0 0 0.7rem 0;font-style:italic;">' + _pfEsc(r.observaciones_conformacion) + '</p>';
+    }
+    var pres = r.documentos_presentes || [];
+    if (pres.length) {
+        html += '<details style="margin-bottom:0.5rem;"><summary style="cursor:pointer;font-size:0.82rem;font-weight:600;color:#16a34a;">✅ ' + pres.length + ' documento(s) presente(s)</summary><ul style="font-size:0.78rem;margin:0.4rem 0 0 1.2rem;padding:0;">';
+        pres.forEach(function(p) {
+            html += '<li><strong>' + _pfEsc(p.categoria || '?') + '</strong> · ' + _pfEsc(p.descripcion || '') + (p.paginas_aprox ? ' (págs ' + _pfEsc(p.paginas_aprox) + ')' : '') + '</li>';
+        });
+        html += '</ul></details>';
+    }
+    var falt = (r.documentos_faltantes || []).slice().sort(function(a, b) { return (a.orden_oficial || 999) - (b.orden_oficial || 999); });
+    if (falt.length) {
+        html += '<div style="margin-top:0.5rem;"><strong style="font-size:0.85rem;color:#dc2626;">⚠️ ' + falt.length + ' documento(s) faltante(s):</strong></div>';
+        falt.forEach(function(f) {
+            var catSlug = (f.categoria || 'documento').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 60);
+            var ordenSafe = parseInt(f.orden_oficial) || 999;
+            var existeYa = (ev.archivos || []).some(function(a) { return a.categoria === catSlug; });
+            html += '<div style="background:#fff;border:1px solid #fecaca;padding:0.6rem;border-radius:6px;margin-top:0.4rem;">';
+            html += '<div style="font-size:0.82rem;font-weight:600;color:#7f1d1d;">' + ordenSafe + '. ' + _pfEsc(f.descripcion || catSlug) + (f.obligatorio === false ? ' <span style="color:#6b7280;font-weight:400;">(opcional)</span>' : '') + '</div>';
+            if (f.donde_obtenerlo) html += '<p style="font-size:0.76rem;color:#6b7280;margin:0.2rem 0;">💡 ' + _pfEsc(f.donde_obtenerlo) + '</p>';
+            if (existeYa) {
+                var ya = ev.archivos.find(function(a){return a.categoria===catSlug;});
+                html += '<p style="font-size:0.78rem;color:#16a34a;margin:0.3rem 0 0 0;">✅ Ya adjuntado. <a href="#" data-aid="' + ya.id + '" data-pid="' + ev.id + '" data-est="' + _pfEsc(estandar) + '" data-cand="' + candId + '" class="pf-quitar" style="color:#dc2626;">Quitar</a></p>';
+            } else {
+                var inputId = 'pf_falt_' + ev.id + '_' + catSlug;
+                html += '<div style="display:flex;gap:0.4rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">';
+                html += '<input type="file" id="' + inputId + '" accept="application/pdf,.pdf" style="font-size:0.75rem;flex:1;min-width:180px;">';
+                html += '<button data-pid="' + ev.id + '" data-cat="' + _pfEsc(catSlug) + '" data-desc="' + _pfEsc(f.descripcion || '') + '" data-orden="' + ordenSafe + '" data-input="' + inputId + '" data-est="' + _pfEsc(estandar) + '" data-cand="' + candId + '" class="pf-adjuntar" style="background:#16a34a;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:0.74rem;cursor:pointer;font-weight:600;">Adjuntar</button>';
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+    }
+    html += '<div style="margin-top:0.9rem;border-top:1px dashed #d1d5db;padding-top:0.7rem;display:flex;flex-direction:column;gap:0.5rem;">';
+    html += '<button onclick="generarIntegrado(' + ev.id + ',\'' + estandar + '\',' + candId + ')" style="background:#0891b2;color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">🔗 Generar vista preliminar del Portafolio Integrado</button>';
+    if (ev.tiene_integrado) {
+        html += '<div style="background:#ecfeff;border:1px solid #67e8f9;padding:0.6rem;border-radius:6px;">';
+        html += '<p style="margin:0 0 0.4rem 0;font-size:0.78rem;color:#0e7490;">Vista preliminar generada · ' + _pfFmtSize(ev.integrado_size) + ' · hash: <code style="font-size:0.7rem;">' + (ev.hash_sha256 || '').substring(0, 16) + '…</code></p>';
+        html += '<a href="/api/ce/portafolio/' + ev.id + '/descargar_integrado" target="_blank" style="display:inline-block;background:#fff;color:#0891b2;border:1px solid #0891b2;padding:5px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;">📥 Descargar preliminar (sin firma)</a>';
+        html += '</div>';
+        if (!ev.autorizado) {
+            html += '<div style="background:#fff;border:2px solid #16a34a;padding:0.7rem;border-radius:8px;">';
+            html += '<p style="margin:0 0 0.5rem 0;font-size:0.85rem;font-weight:600;color:#15803d;">Autorización del Evaluador Acreditado</p>';
+            html += '<input type="text" id="pf_eval_nombre_' + ev.id + '" placeholder="Nombre completo del evaluador" style="width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:0.82rem;margin-bottom:0.4rem;">';
+            html += '<input type="text" id="pf_eval_cedula_' + ev.id + '" placeholder="Cédula CONOCER (opcional)" style="width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:0.82rem;margin-bottom:0.5rem;">';
+            html += '<label style="display:flex;align-items:flex-start;gap:0.4rem;font-size:0.78rem;color:#374151;margin-bottom:0.5rem;cursor:pointer;"><input type="checkbox" id="pf_eval_acepta_' + ev.id + '" style="margin-top:3px;"><span>Bajo protesta de decir verdad, certifico que este portafolio está correctamente integrado conforme a CONOCER y autorizo su uso oficial.</span></label>';
+            html += '<button onclick="autorizarPortafolio(' + ev.id + ',\'' + estandar + '\',' + candId + ')" style="background:#16a34a;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;width:100%;">🔏 Firmar y autorizar</button>';
+            html += '</div>';
+        } else {
+            html += '<div style="background:#dcfce7;border:2px solid #16a34a;padding:0.8rem;border-radius:8px;">';
+            html += '<p style="margin:0 0 0.4rem 0;font-size:0.88rem;font-weight:700;color:#15803d;">✅ PORTAFOLIO AUTORIZADO (Parte A · Conformación)</p>';
+            html += '<p style="margin:0 0 0.5rem 0;font-size:0.76rem;color:#374151;">Sellado el ' + (ev.autorizado_at ? new Date(ev.autorizado_at).toLocaleString('es-MX') : '') + ' · hash <code style="font-size:0.7rem;">' + (ev.hash_sha256 || '').substring(0, 20) + '…</code></p>';
+            html += '<a href="/api/ce/portafolio/' + ev.id + '/descargar_integrado" target="_blank" style="display:inline-block;background:#16a34a;color:#fff;padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:700;text-decoration:none;">📥 Descargar Portafolio Integrado Autorizado</a>';
+            html += '</div>';
+
+            html += '<div style="background:#faf5ff;border:2px solid #9333ea;padding:0.8rem;border-radius:8px;margin-top:0.6rem;">';
+            html += '<p style="margin:0 0 0.4rem 0;font-size:0.88rem;font-weight:700;color:#6b21a8;">🎓 Parte B · Dictamen Técnico de Competencia (VI Juicio del IEC)</p>';
+            html += '<p style="margin:0 0 0.6rem 0;font-size:0.76rem;color:#374151;font-style:italic;">Verificación técnica independiente reactivo por reactivo del IEC. No sustituye el juicio oficial del Evaluador ante CONOCER; es una segunda opinión técnica.</p>';
+            if (!ev.tiene_dictamen) {
+                html += '<button data-pid="' + ev.id + '" data-est="' + _pfEsc(estandar) + '" data-cand="' + candId + '" class="pf-dictaminar" style="background:#9333ea;color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;width:100%;">🎓 Emitir dictamen de competencia con IA</button>';
+            } else {
+                var dfin = (ev.dictamen_final || '').toUpperCase();
+                var dfinColor = dfin === 'COMPETENTE' ? '#16a34a' : (dfin.indexOf('NO COMPETENTE') >= 0 ? '#dc2626' : '#6b7280');
+                var dfinBg = dfin === 'COMPETENTE' ? '#dcfce7' : (dfin.indexOf('NO COMPETENTE') >= 0 ? '#fef2f2' : '#f3f4f6');
+                html += '<div style="background:' + dfinBg + ';border:1px solid ' + dfinColor + ';padding:0.7rem;border-radius:6px;margin-bottom:0.5rem;">';
+                html += '<div style="font-size:1.1rem;font-weight:700;color:' + dfinColor + ';text-align:center;">' + _pfEsc(dfin || 'PENDIENTE') + (ev.dictamen_resumen !== null && ev.dictamen_resumen !== undefined ? ' · ' + ev.dictamen_resumen + '%' : '') + '</div>';
+                html += '<div style="font-size:0.72rem;color:#6b7280;text-align:center;margin-top:0.2rem;">Emitido ' + (ev.dictamen_generado_at ? new Date(ev.dictamen_generado_at).toLocaleString('es-MX') : '') + '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">';
+                html += '<a href="/api/ce/portafolio/' + ev.id + '/descargar_dictamen" target="_blank" style="flex:1;text-align:center;background:#9333ea;color:#fff;padding:8px 12px;border-radius:6px;font-size:0.82rem;font-weight:700;text-decoration:none;">📥 Descargar Dictamen PDF</a>';
+                html += '<button data-pid="' + ev.id + '" data-est="' + _pfEsc(estandar) + '" data-cand="' + candId + '" class="pf-dictaminar" style="background:#fff;color:#9333ea;border:1px solid #9333ea;padding:8px 12px;border-radius:6px;font-size:0.78rem;cursor:pointer;">Re-emitir</button>';
+                html += '</div>';
+                html += '<div style="margin-top:0.5rem;font-size:0.68rem;color:#6b7280;">🤖 ' + (ev.dictamen_tokens || 0) + ' tokens dictamen · $' + (ev.dictamen_cost_mxn || 0).toFixed(4) + ' MXN</div>';
+            }
+            html += '</div>';
+        }
+    }
+    html += '</div>';
+    var totalMxn = (ev.cost_mxn || 0) + (ev.dictamen_cost_mxn || 0);
+    var totalUsd = (ev.cost_usd || 0) + (ev.dictamen_cost_usd || 0);
+    var totalTok = (ev.tokens_total || 0) + (ev.dictamen_tokens || 0);
+    html += '<div style="margin-top:0.6rem;font-size:0.7rem;color:#6b7280;border-top:1px dotted #d1d5db;padding-top:0.5rem;">🤖 ' + (ev.model_used || 'IA') + ' · Total: ' + totalTok + ' tokens · $' + totalMxn.toFixed(4) + ' MXN ($' + totalUsd.toFixed(6) + ' USD) <span style="opacity:0.7;">[Auditoría: $' + (ev.cost_mxn || 0).toFixed(4) + ' · Dictamen: $' + (ev.dictamen_cost_mxn || 0).toFixed(4) + ']</span></div>';
+    html += '</div>';
+    return html;
+}
+
+document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('pf-adjuntar')) {
+        e.preventDefault();
+        adjuntarFaltante(parseInt(t.dataset.pid), t.dataset.cat, t.dataset.desc, parseInt(t.dataset.orden), t.dataset.input, t.dataset.est, parseInt(t.dataset.cand));
+    } else if (t && t.classList && t.classList.contains('pf-quitar')) {
+        e.preventDefault();
+        eliminarArchivoPF(e, parseInt(t.dataset.aid), parseInt(t.dataset.pid), t.dataset.est, parseInt(t.dataset.cand));
+    } else if (t && t.classList && t.classList.contains('pf-dictaminar')) {
+        e.preventDefault();
+        dictaminarPortafolio(parseInt(t.dataset.pid), t.dataset.est, parseInt(t.dataset.cand));
+    }
+});
+
+async function dictaminarPortafolio(pid, estandar, candId) {
+    if (!confirm('La IA leerá el portafolio autorizado y emitirá un dictamen técnico de competencia (C/NA por reactivo). ¿Continuar?')) return;
+    var btns = document.querySelectorAll('button.pf-dictaminar[data-pid="' + pid + '"]');
+    btns.forEach(function(b) { b.disabled = true; b.textContent = '⏳ Emitiendo dictamen IA...'; });
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid + '/dictaminar', { method: 'POST' });
+        var data = await resp.json();
+        if (!resp.ok) { alert('⚠️ ' + (data.error || 'Error en dictamen')); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) {
+        alert('⚠️ Error de conexión durante dictamen');
+    } finally {
+        btns.forEach(function(b) { b.disabled = false; });
+    }
+}
+
+async function listarPortafolios(estandar, candId) {
+    var pref = _pfPrefix(estandar);
+    var box = document.getElementById(pref + '_lista');
+    if (!candId) { box.innerHTML = ''; return; }
+    try {
+        var resp = await fetch('/api/ce/portafolio/list/' + candId);
+        var data = await resp.json();
+        if (!resp.ok) { box.innerHTML = '<p style="color:#dc2626;font-size:0.8rem;">' + (data.error || 'Error') + '</p>'; return; }
+        var rows = (data.evaluaciones || []).filter(function(e) { return e.estandar === estandar; });
+        if (!rows.length) { box.innerHTML = '<p style="font-size:0.8rem;color:#9ca3af;">Sin evaluaciones previas para este candidato y estándar.</p>'; return; }
+        var html = '';
+        rows.forEach(function(ev) {
+            var fecha = ev.created_at ? new Date(ev.created_at).toLocaleString('es-MX') : '—';
+            var statusColor = _pfStatusColor(ev.status);
+            html += '<details style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.6rem;background:#fff;" ' + (ev.status !== 'autorizado' ? 'open' : '') + '>';
+            html += '<summary style="cursor:pointer;padding:0.6rem 0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem;font-size:0.84rem;">';
+            html += '<span><strong>Evaluación #' + ev.id + '</strong> · ' + fecha + ' · <span style="color:' + statusColor + ';font-weight:600;">' + ev.status + '</span></span>';
+            html += '<button onclick="event.preventDefault();event.stopPropagation();eliminarPortafolio(' + ev.id + ',\'' + estandar + '\',' + candId + ')" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;padding:3px 8px;border-radius:5px;font-size:0.7rem;cursor:pointer;">Eliminar</button>';
+            html += '</summary>';
+            html += '<div style="padding:0.6rem 0.8rem;border-top:1px solid #f3f4f6;">';
+            html += _pfRenderResultado(ev, estandar, candId);
+            html += '</div></details>';
+        });
+        box.innerHTML = html;
+    } catch (e) {
+        box.innerHTML = '<p style="color:#dc2626;font-size:0.8rem;">Error de conexión</p>';
+    }
+}
+
+async function auditarPortafolio(pid, estandar, candId) {
+    var btns = document.querySelectorAll('button[onclick*="auditarPortafolio(' + pid + ',"]');
+    btns.forEach(function(b) { b.disabled = true; b.textContent = '⏳ Auditando con IA...'; });
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid + '/auditar', { method: 'POST' });
+        var data = await resp.json();
+        if (!resp.ok) { alert('⚠️ ' + (data.error || 'Error en auditoría')); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) {
+        alert('⚠️ Error de conexión durante auditoría');
+    } finally {
+        btns.forEach(function(b) { b.disabled = false; });
+    }
+}
+
+async function adjuntarFaltante(pid, categoria, descripcion, orden, inputId, estandar, candId) {
+    var input = document.getElementById(inputId);
+    if (!input || !input.files || !input.files[0]) { alert('Selecciona el PDF a adjuntar'); return; }
+    var fd = new FormData();
+    fd.append('categoria', categoria);
+    fd.append('descripcion', descripcion || '');
+    fd.append('orden_oficial', String(orden || 999));
+    fd.append('archivo', input.files[0]);
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid + '/adjuntar_faltante', { method: 'POST', body: fd });
+        var data = await resp.json();
+        if (!resp.ok) { alert('⚠️ ' + (data.error || 'Error')); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) { alert('⚠️ Error de conexión'); }
+}
+
+async function eliminarArchivoPF(ev, aid, pid, estandar, candId) {
+    if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+    if (!confirm('¿Quitar este documento del portafolio?')) return;
+    try {
+        var resp = await fetch('/api/ce/portafolio/archivo/' + aid, { method: 'DELETE' });
+        var data = await resp.json();
+        if (!resp.ok) { alert(data.error || 'Error'); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) { alert('Error de conexión'); }
+}
+
+async function generarIntegrado(pid, estandar, candId) {
+    var btns = document.querySelectorAll('button[onclick*="generarIntegrado(' + pid + ',"]');
+    btns.forEach(function(b) { b.disabled = true; b.textContent = '⏳ Integrando PDFs...'; });
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid + '/generar_integrado', { method: 'POST' });
+        var data = await resp.json();
+        if (!resp.ok) { alert('⚠️ ' + (data.error || 'Error')); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) {
+        alert('⚠️ Error de conexión');
+    } finally {
+        btns.forEach(function(b) { b.disabled = false; });
+    }
+}
+
+async function autorizarPortafolio(pid, estandar, candId) {
+    var nombre = (document.getElementById('pf_eval_nombre_' + pid) || {}).value || '';
+    var cedula = (document.getElementById('pf_eval_cedula_' + pid) || {}).value || '';
+    var acepta = (document.getElementById('pf_eval_acepta_' + pid) || {}).checked || false;
+    if (!nombre.trim()) { alert('Captura el nombre del evaluador'); return; }
+    if (!acepta) { alert('Debes marcar la casilla de responsabilidad'); return; }
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid + '/autorizar', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ evaluador_nombre: nombre, evaluador_cedula: cedula, acepta_responsabilidad: true })
+        });
+        var data = await resp.json();
+        if (!resp.ok) { alert('⚠️ ' + (data.error || 'Error')); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) { alert('⚠️ Error de conexión'); }
+}
+
+async function eliminarPortafolio(pid, estandar, candId) {
+    if (!confirm('¿Eliminar esta evaluación de portafolio?')) return;
+    try {
+        var resp = await fetch('/api/ce/portafolio/' + pid, { method: 'DELETE' });
+        var data = await resp.json();
+        if (!resp.ok) { alert(data.error || 'Error'); return; }
+        await listarPortafolios(estandar, candId);
+    } catch (e) { alert('Error de conexión'); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var s1 = document.getElementById('pf_ec0301_candidato');
+    var s2 = document.getElementById('pf_ec0217_candidato');
+    if (s1) s1.addEventListener('change', function() { listarPortafolios('EC0301', this.value); });
+    if (s2) s2.addEventListener('change', function() { listarPortafolios('EC0217.01', this.value); });
+});
+</script>
+{% endblock %}

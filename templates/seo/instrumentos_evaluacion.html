@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block meta_description %}Instrumentos de evaluación de la competencia (IECs) para EC0301 y EC0217.01: ejemplo, tipos de reactivos y generador con IA alineado al CONOCER.{% endblock %}
+{% block meta_keywords %}instrumentos de evaluación EC0301 y EC0217.01, IECs, reactivos EC0301, evaluación de la competencia, CONOCER{% endblock %}
+{% block og_title %}Instrumentos de Evaluación EC0301 y EC0217.01 — Ejemplo y Generador IA{% endblock %}
+{% block og_description %}Tipos de reactivos, listas de cotejo y guías de observación alineados al EC0301 y EC0217.01. Genera tus IECs con IA en PertinentIA.{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">{{ {
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[
+    {"@type":"Question","name":"¿Qué son los IECs en EC0301 y EC0217.01?","acceptedAnswer":{"@type":"Answer","text":"Los Instrumentos de Evaluación de la Competencia son las herramientas que aplicas para medir si el participante logró el aprendizaje declarado en la carta descriptiva. Para EC0301 y EC0217.01 son evidencia obligatoria del portafolio."}},
+    {"@type":"Question","name":"¿Qué tipos de reactivos puedo usar en EC0301?","acceptedAnswer":{"@type":"Answer","text":"En la práctica del estándar EC0301 se utilizan reactivos de opción múltiple, falso/verdadero, relación de columnas, complementación y respuesta abierta, además de listas de cotejo y guías de observación para evidencias por desempeño y por producto."}},
+    {"@type":"Question","name":"¿La IA puede generar reactivos válidos?","acceptedAnswer":{"@type":"Answer","text":"Sí. PertinentIA genera reactivos alineados a los criterios del estándar y al lenguaje exacto del CONOCER, listos para integrar al portafolio EC0301 y EC0217.01."}}
+  ]
+} | tojson | safe }}</script>
+{% endblock %}
+{% block content %}
+<article class="seo-landing">
+<header class="seo-hero">
+  <span class="seo-badge">EC0301 y EC0217.01 · Elemento 2</span>
+  <h1>Instrumentos de Evaluación EC0301 y EC0217.01: tipos, ejemplos y generador con IA</h1>
+  <p class="seo-lede">Los <strong>IECs</strong> son la evidencia que demuestra al evaluador que tu curso enseñó lo que prometió. Te explico qué son, qué pide el estándar EC0301 y EC0217.01, y cómo generarlos con IA partiendo de tu carta descriptiva.</p>
+  <a href="/registro?from=seo_iecs" class="seo-cta-primary">Empieza por tu Carta Descriptiva gratis</a>
+  <a href="/login?next=/elemento/2" class="seo-cta-secondary">Ya tengo cuenta</a>
+</header>
+
+<section class="seo-video">
+  <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/pertinentia_promo_poster.jpg') }}">
+    <source src="{{ url_for('static', filename='videos/pertinentia_promo.mp4') }}" type="video/mp4">
+    Tu navegador no soporta el video.
+  </video>
+</section>
+
+<section>
+  <h2>¿Qué son los Instrumentos de Evaluación de la Competencia?</h2>
+  <p>Los IECs son el conjunto de herramientas con las que mides el logro de aprendizaje de tus participantes. En el marco EC0301 y EC0217.01 del CONOCER son evidencia obligatoria: sin instrumentos válidos, el portafolio no procede para evaluación.</p>
+  <p>No son solo "el examen final". El estándar exige instrumentos según la naturaleza de la evidencia:</p>
+  <ul>
+    <li><strong>De conocimiento:</strong> cuestionarios con reactivos objetivos.</li>
+    <li><strong>De desempeño:</strong> guías de observación con criterios de cumplimiento.</li>
+    <li><strong>De producto:</strong> listas de cotejo aplicadas al entregable que produjo el participante.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Tipos de reactivos usados en EC0301 y EC0217.01</h2>
+  <ol>
+    <li><strong>Opción múltiple</strong> — el más usado; se recomienda con distractores plausibles.</li>
+    <li><strong>Falso/Verdadero</strong> — útil para conceptos definitorios; evitar ambigüedades.</li>
+    <li><strong>Relación de columnas</strong> — para vincular conceptos.</li>
+    <li><strong>Complementación</strong> — para evaluar terminología precisa.</li>
+    <li><strong>Respuesta abierta</strong> — limitada porque dificulta la objetividad.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Ejemplo: lista de cotejo para evidencia de producto</h2>
+  <pre>
+Producto a evaluar: Plan de atención al cliente
+Participante: ___________________  Fecha: __________
+
+Criterio                                          | Sí | No | Obs
+--------------------------------------------------|----|----|----
+1. Identifica el tipo de cliente                  |    |    |
+2. Define protocolo de saludo según contexto      |    |    |
+3. Establece tiempo máximo de respuesta           |    |    |
+4. Incluye guion de cierre                        |    |    |
+5. Aplica los pasos del modelo establecido        |    |    |
+
+Nivel de logro mínimo: 4 de 5 criterios cumplidos
+Resultado: Cumple / No cumple
+  </pre>
+</section>
+
+<section>
+  <h2>Estrategias de evaluación: lo que el estándar EC0301 sí pide</h2>
+  <p>El criterio 8 del estándar EC0301 establece literalmente que las <strong>estrategias de evaluación</strong> determinadas en tu curso deben:</p>
+  <ul>
+    <li>Corresponder con los objetivos de aprendizaje.</li>
+    <li>Contener los criterios de evaluación a utilizar.</li>
+    <li>Contener los instrumentos que se aplicarán en los <strong>tres momentos</strong>: diagnóstica, formativa y sumativa.</li>
+    <li>Mencionar los instrumentos a utilizar.</li>
+    <li>Describir las evidencias que el participante deberá demostrar como resultado del aprendizaje.</li>
+  </ul>
+  <p>Es uno de los puntos donde el evaluador suele emitir dictamen de "todavía no competente" cuando la documentación es ambigua o los instrumentos no cubren los tres momentos. PertinentIA construye el set completo a partir de la carta descriptiva, garantizando esa correspondencia.</p>
+</section>
+
+<section class="seo-why">
+  <h2>Por qué PertinentIA</h2>
+  <div class="seo-why-grid">
+    <div class="seo-why-card"><strong>La única IA especializada en metodología CONOCER en Latinoamérica</strong><p>No es ChatGPT con un prompt: es una IA entrenada con el protocolo exacto del estándar EC0301 y EC0217.01.</p></div>
+    <div class="seo-why-card"><strong>Eleva pedagógicamente cualquier tema</strong><p>Tú aportas la experiencia, PertinentIA construye el curso completo. Desde información elemental hasta la co-creación.</p></div>
+  </div>
+</section>
+
+<section class="seo-network-banner">
+  <strong>PertinentIA es la primera Red Profesional de Capacitación Certificada en México.</strong>
+  <p>Diseñada para Agentes Capacitadores Externos, instructores STPS internos, docentes SEP y profesionales del Diseño Instruccional.</p>
+</section>
+
+<section class="seo-cta-block">
+  <h2>Genera tus IECs EC0301 y EC0217.01 en minutos</h2>
+  <p>Plantillas, reactivos, listas de cotejo y guías de observación alineadas al lenguaje del estándar y a tu carta descriptiva.</p>
+  <a href="/registro?from=seo_iecs" class="seo-cta-primary">Empieza por tu Carta Descriptiva gratis</a>
+</section>
+</article>
+
+<style>
+.seo-landing{max-width:880px;margin:0 auto;padding:2rem 1.2rem;font-family:Inter,sans-serif;color:#1f2937;line-height:1.65;}
+.seo-hero{text-align:center;margin-bottom:1.4rem;padding:1.6rem 1rem;background:linear-gradient(135deg,#fff5f4,#fff);border-radius:14px;}
+.seo-badge{display:inline-block;background:#FA8072;color:#fff;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:700;letter-spacing:0.4px;}
+.seo-hero h1{font-size:1.7rem;font-weight:800;margin:0.8rem 0;line-height:1.25;color:#111827;}
+.seo-lede{font-size:1rem;color:#4b5563;max-width:720px;margin:0 auto 1.2rem;}
+.seo-cta-primary{display:inline-block;background:#FA8072;color:#fff;padding:0.85rem 1.6rem;border-radius:10px;font-weight:700;text-decoration:none;margin:0.4rem;box-shadow:0 4px 12px rgba(250,128,114,0.3);}
+.seo-cta-secondary{display:inline-block;color:#FA8072;padding:0.85rem 1.4rem;border:2px solid #FA8072;border-radius:10px;font-weight:600;text-decoration:none;margin:0.4rem;}
+.seo-video{text-align:center;margin:1rem 0 2rem;}
+.seo-video video{width:100%;max-width:720px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);background:#000;}
+.seo-landing section{margin:1.8rem 0;}
+.seo-landing h2{font-size:1.35rem;font-weight:700;color:#111827;margin-bottom:0.7rem;border-left:4px solid #FA8072;padding-left:0.7rem;}
+.seo-landing pre{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;overflow-x:auto;font-size:0.85rem;}
+.seo-landing ol li,.seo-landing ul li{margin:0.4rem 0;}
+.seo-why{background:#f9fafb;border-radius:12px;padding:1.5rem;}
+.seo-why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:0.8rem;}
+.seo-why-card{background:#fff;padding:1rem;border-left:4px solid #FA8072;border-radius:8px;}
+.seo-why-card strong{color:#1a1a2e;}
+.seo-why-card p{margin:0.4rem 0 0;color:#4b5563;font-size:0.92rem;}
+.seo-network-banner{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:1.5rem;border-radius:12px;margin:2rem 0;text-align:center;border:2px solid #FA8072;}
+.seo-network-banner strong{font-size:1.1rem;display:block;margin-bottom:0.4rem;color:#FA8072;}
+.seo-network-banner p{margin:0;color:rgba(255,255,255,0.85);font-size:0.92rem;}
+.seo-cta-block{background:#1a1a2e;color:#fff;padding:2rem 1.5rem;border-radius:14px;text-align:center;margin-top:2rem;}
+.seo-cta-block h2{color:#fff;border:none;padding:0;}
+.seo-cta-block p{color:rgba(255,255,255,0.85);max-width:600px;margin:0.8rem auto 1.4rem;}
+@media (max-width:640px){.seo-hero h1{font-size:1.4rem;}.seo-lede{font-size:0.95rem;}}
+</style>
+{% endblock %}

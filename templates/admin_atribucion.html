@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Atribución de Campañas Digitales</h1>
+  <p>Modelo de medición UTM — visibilidad puntual por anuncio, conjunto, campaña y landing.</p>
+</div>
+
+<style>
+.atrib-wrap { max-width: 1280px; margin: 0 auto; }
+.atrib-kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.8rem; margin-bottom:1.2rem; }
+.atrib-kpi { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:0.9rem 1rem; }
+.atrib-kpi .lbl { font-size:0.72rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; }
+.atrib-kpi .val { font-size:1.6rem; font-weight:700; color:#111827; margin-top:0.25rem; }
+.atrib-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.1rem 1.2rem; margin-bottom:1.2rem; }
+.atrib-card h2 { font-size:1.05rem; color:#374151; margin:0 0 0.8rem 0; }
+.atrib-filters { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; padding:0.6rem 0.75rem; margin-bottom:0.8rem; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; font-size:0.85rem; }
+.atrib-filters select, .atrib-filters input { padding:0.4rem 0.55rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.85rem; }
+.atrib-filters button { padding:0.4rem 0.9rem; background:#FA8072; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.82rem; font-weight:600; }
+.atrib-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.atrib-table th { background:#f9fafb; text-align:left; padding:0.55rem 0.6rem; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600; text-transform:uppercase; font-size:0.7rem; position:sticky; top:0; }
+.atrib-table td { padding:0.5rem 0.6rem; border-bottom:1px solid #f3f4f6; vertical-align:top; }
+.atrib-table tbody tr:hover { background:#fafafa; }
+.atrib-bucket { font-weight:600; color:#1f2937; }
+.atrib-pill { display:inline-block; background:#eef2ff; color:#3730a3; padding:1px 8px; border-radius:999px; font-size:0.7rem; font-weight:600; }
+.atrib-pill.warn { background:#fef3c7; color:#92400e; }
+.atrib-pill.ok { background:#dcfce7; color:#166534; }
+.atrib-scroll { max-height: 620px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; }
+.atrib-export { background:#16a34a; color:#fff; border:none; padding:0.45rem 0.9rem; border-radius:6px; cursor:pointer; font-size:0.82rem; font-weight:600; text-decoration:none; display:inline-block; }
+.atrib-help { font-size:0.78rem; color:#6b7280; background:#f9fafb; border-left:3px solid #FA8072; padding:0.7rem 0.9rem; border-radius:6px; margin-bottom:1rem; }
+</style>
+
+<div class="atrib-wrap">
+
+  <div class="atrib-help">
+    Esta vista lee los UTMs capturados en el <strong>primer toque</strong> de cada usuario que se registró en la plataforma.
+    Mientras más arriba aparezca un anuncio en la tabla agregada, más usuarios trajo. La columna <strong>Activación</strong> muestra qué % de esos registros realmente usaron la herramienta. La columna <strong>PRO/Pagados</strong> muestra cuántos convirtieron a plan de pago.
+  </div>
+
+  <div class="atrib-kpis">
+    <div class="atrib-kpi"><div class="lbl">Usuarios con UTM</div><div class="val">{{ total_with_utm }}</div></div>
+    <div class="atrib-kpi"><div class="lbl">Usuarios totales</div><div class="val">{{ total_users }}</div></div>
+    <div class="atrib-kpi"><div class="lbl">% con atribución</div><div class="val">{% if total_users %}{{ (100 * total_with_utm / total_users) | round(1) }}%{% else %}—{% endif %}</div></div>
+    <div class="atrib-kpi"><div class="lbl">Buckets activos</div><div class="val">{{ agg_rows|length }}</div></div>
+  </div>
+
+  <form class="atrib-filters" method="get" action="/admin/atribucion">
+    <label>Agrupar por:</label>
+    <select name="group">
+      <option value="content" {% if group_by=='content' %}selected{% endif %}>Anuncio (utm_content)</option>
+      <option value="term" {% if group_by=='term' %}selected{% endif %}>Conjunto (utm_term)</option>
+      <option value="campaign" {% if group_by=='campaign' %}selected{% endif %}>Campaña (utm_campaign)</option>
+      <option value="medium" {% if group_by=='medium' %}selected{% endif %}>Medio (utm_medium)</option>
+      <option value="source" {% if group_by=='source' %}selected{% endif %}>Fuente (utm_source)</option>
+      <option value="landing" {% if group_by=='landing' %}selected{% endif %}>Landing</option>
+    </select>
+    <label>Ordenar por:</label>
+    <select name="sort">
+      <option value="registros" {% if sort=='registros' %}selected{% endif %}>Registros (más → menos)</option>
+      <option value="pro" {% if sort=='pro' %}selected{% endif %}>PRO/Pagados</option>
+      <option value="activacion" {% if sort=='activacion' %}selected{% endif %}>% Activación</option>
+      <option value="reciente" {% if sort=='reciente' %}selected{% endif %}>Más reciente</option>
+    </select>
+    <label>Ventana:</label>
+    <select name="days">
+      <option value="0" {% if days==0 %}selected{% endif %}>Todo el histórico</option>
+      <option value="7" {% if days==7 %}selected{% endif %}>Últimos 7 días</option>
+      <option value="14" {% if days==14 %}selected{% endif %}>Últimos 14 días</option>
+      <option value="30" {% if days==30 %}selected{% endif %}>Últimos 30 días</option>
+      <option value="90" {% if days==90 %}selected{% endif %}>Últimos 90 días</option>
+    </select>
+    <button type="submit">Aplicar</button>
+    <a href="/admin-crm" style="margin-left:auto;font-size:0.82rem;color:#6b7280;text-decoration:none;">← Volver al CRM</a>
+  </form>
+
+  <div class="atrib-card">
+    <h2>📊 Ranking agregado — {{ {'content':'por Anuncio','term':'por Conjunto','campaign':'por Campaña','medium':'por Medio','source':'por Fuente','landing':'por Landing'}[group_by] }}</h2>
+    <div class="atrib-scroll">
+      <table class="atrib-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{{ {'content':'Anuncio','term':'Conjunto','campaign':'Campaña','medium':'Medio','source':'Fuente','landing':'Landing'}[group_by] }}</th>
+            <th>Campaña</th>
+            <th>Conjunto</th>
+            <th>Anuncio</th>
+            <th style="text-align:right;">Registros</th>
+            <th style="text-align:right;">Activados</th>
+            <th style="text-align:right;">% Activación</th>
+            <th style="text-align:right;">PRO/Pagados</th>
+            <th>Último registro</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in agg_rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="atrib-bucket">{{ r.bucket or '—' }}</td>
+            <td style="font-size:0.78rem;color:#6b7280;">{{ r.utm_campaign or '—' }}</td>
+            <td style="font-size:0.78rem;color:#6b7280;">{{ r.utm_term or '—' }}</td>
+            <td style="font-size:0.78rem;color:#6b7280;">{{ r.utm_content or '—' }}</td>
+            <td style="text-align:right;"><span class="atrib-pill">{{ r.registros }}</span></td>
+            <td style="text-align:right;">{{ r.activados }}</td>
+            <td style="text-align:right;">
+              {% set ap = r.activacion_pct or 0 %}
+              <span class="atrib-pill {% if ap >= 40 %}ok{% elif ap < 15 %}warn{% endif %}">{{ ap }}%</span>
+            </td>
+            <td style="text-align:right;">{% if r.pro_paid %}<span class="atrib-pill ok">{{ r.pro_paid }}</span>{% else %}0{% endif %}</td>
+            <td style="font-size:0.76rem;color:#6b7280;">{{ fmt_cdmx(r.ultimo_registro) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:2rem;">Aún no hay usuarios registrados con UTMs. En cuanto el primer clic de la campaña Meta convierta a registro, aparecerá aquí.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="atrib-card">
+    <h2>👤 Detalle por usuario — últimos 500 registros con atribución</h2>
+    <div style="margin-bottom:0.6rem;">
+      <a class="atrib-export" href="/api/admin/export_atribucion{% if days %}?days={{ days }}{% endif %}">⬇ Exportar CSV</a>
+    </div>
+    <div class="atrib-scroll">
+      <table class="atrib-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Usuario</th><th>Plan</th><th>Registro</th>
+            <th>Fuente</th><th>Medio</th><th>Campaña</th><th>Conjunto</th><th>Anuncio</th><th>Landing</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in detail_rows %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td><strong>{{ u.full_name or '—' }}</strong><br><span style="font-size:0.74rem;color:#6b7280;">{{ u.email }}</span></td>
+            <td><span class="atrib-pill {% if u.tier in ('PRO','PREMIUM','MULTI','PRO_MULTI') %}ok{% endif %}">{{ u.tier }}</span></td>
+            <td style="font-size:0.76rem;">{{ fmt_cdmx(u.created_at) }}</td>
+            <td>{{ u.utm_source or '—' }}</td>
+            <td>{{ u.utm_medium or '—' }}</td>
+            <td style="font-size:0.78rem;">{{ u.utm_campaign or '—' }}</td>
+            <td style="font-size:0.78rem;">{{ u.utm_term or '—' }}</td>
+            <td style="font-size:0.78rem;">{{ u.utm_content or '—' }}</td>
+            <td style="font-size:0.76rem;color:#6b7280;">{{ u.utm_landing or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:2rem;">Sin registros atribuidos todavía.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

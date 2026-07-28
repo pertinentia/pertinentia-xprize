@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Panel de Afiliados</h1>
+    <p>Programa de Comisiones B2B — Protocolo TAX-SHIELD MX</p>
+</div>
+
+<style>
+.aff-grid { max-width: 900px; margin: 0 auto; }
+.aff-card { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #e5e7eb; }
+.aff-card h2 { font-size: 1.1rem; color: #374151; margin-bottom: 1rem; }
+.aff-form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.aff-form-row input, .aff-form-row select { flex: 1; min-width: 180px; padding: 0.6rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.88rem; }
+.aff-btn { background: #FA8072; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: opacity 0.2s; }
+.aff-btn:hover { opacity: 0.85; }
+.aff-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.aff-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.aff-table th { background: #f9fafb; text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+.aff-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f3f4f6; color: #374151; }
+.aff-status-pendiente { color: #d97706; font-weight: 600; }
+.aff-status-pagado { color: #16a34a; font-weight: 600; }
+.aff-regime-selector { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+.aff-regime-btn { padding: 0.5rem 1.2rem; border: 2px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
+.aff-regime-btn.active { border-color: #FA8072; background: #fff5f4; color: #FA8072; }
+.aff-calc-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
+.aff-calc-box .aff-calc-title { font-weight: 700; color: #15803d; font-size: 0.88rem; margin-bottom: 0.5rem; }
+.aff-calc-box .aff-calc-amount { font-size: 1.5rem; font-weight: 800; color: #166534; }
+.aff-success-msg { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; display: none; }
+.aff-success-msg a { color: #FA8072; font-weight: 700; word-break: break-all; }
+.aff-error-msg { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; color: #991b1b; font-size: 0.85rem; display: none; font-weight: 600; }
+.aff-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.aff-modal { background: #fff; border-radius: 16px; padding: 2rem; max-width: 640px; width: 90%; max-height: 85vh; overflow-y: auto; }
+.aff-modal h2 { font-size: 1.2rem; color: #374151; margin-bottom: 1rem; }
+.aff-modal .aff-legal { font-size: 0.82rem; color: #4b5563; line-height: 1.6; margin-bottom: 1rem; }
+.aff-modal .aff-legal strong { color: #111827; }
+.aff-modal .aff-legal ol { padding-left: 1.2rem; }
+.aff-modal .aff-legal ol li { margin-bottom: 0.75rem; }
+.aff-check-row { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 1rem; }
+.aff-check-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; }
+.aff-check-row label { font-size: 0.85rem; color: #374151; cursor: pointer; }
+</style>
+
+{% if not current_user.affiliate_terms_accepted %}
+<div class="aff-modal-overlay" id="termsModal">
+    <div class="aff-modal">
+        <h2>Programa de Afiliados — Comisiones B2B</h2>
+        <p style="font-size:0.88rem;color:#6b7280;margin-bottom:1rem;">Lee y acepta los siguientes términos para activar tu panel de afiliados.</p>
+        <div class="aff-legal">
+            <ol>
+                <li><strong>Naturaleza de la Relaci&oacute;n:</strong> La participaci&oacute;n constituye estrictamente un contrato de comisi&oacute;n mercantil independiente (Art. 273 C&oacute;digo de Comercio). No existe relaci&oacute;n laboral con HUB CERTIFICADOR DE COMPETENCIAS LABORALES S.A.S. DE C.V.</li>
+                <li><strong>Requisitos de Pago (CFDI):</strong> El pago est&aacute; condicionado a la emisi&oacute;n del CFDI 4.0 desglosando IVA y retenciones conforme al r&eacute;gimen fiscal del afiliado.</li>
+                <li><strong>Plazos de Liquidaci&oacute;n:</strong> 10 a 15 d&iacute;as h&aacute;biles posteriores al dep&oacute;sito de Stripe.</li>
+            </ol>
+        </div>
+        <div class="aff-check-row">
+            <input type="checkbox" id="acceptTermsCheck">
+            <label for="acceptTermsCheck">He le&iacute;do y acepto los t&eacute;rminos y condiciones del Programa de Afiliados y Comisiones B2B.</label>
+        </div>
+        <button class="aff-btn" id="acceptTermsBtn" disabled onclick="acceptTerms()">Aceptar y Activar Panel</button>
+    </div>
+</div>
+{% endif %}
+
+<div class="aff-grid">
+    <div class="aff-card" style="background:linear-gradient(135deg,#2d2d2d 0%,#1a1a2e 100%);color:#fff;border:none;">
+        <h2 style="color:#fff;margin-bottom:0.5rem;">Tu Enlace de Afiliado</h2>
+        <p style="font-size:0.82rem;color:rgba(255,255,255,0.7);margin-bottom:1rem;">Comparte este enlace para atraer prospectos autom&aacute;ticamente. Cuando se registren, aparecer&aacute;n en tu cartera.</p>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="affiliateLink" readonly value="{{ request.host_url.rstrip('/') }}/r/{{ current_user.id }}" style="flex:1;min-width:200px;padding:0.6rem 0.75rem;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:0.85rem;background:rgba(255,255,255,0.1);color:#fff;">
+            <button class="aff-btn" onclick="copyAffLink()" id="copyLinkBtn" style="white-space:nowrap;">&#128203; Copiar Enlace</button>
+        </div>
+        <p id="copyConfirm" style="font-size:0.78rem;color:#86efac;margin-top:0.5rem;display:none;font-weight:600;">&iexcl;Enlace copiado al portapapeles!</p>
+        <div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;">
+            <p style="font-size:0.78rem;color:#fef3c7;margin:0;line-height:1.5;"><strong>&#9888;&#65039; Importante:</strong> Tu referido debe registrarse usando tu enlace personalizado en la misma sesi&oacute;n de navegaci&oacute;n. Si cierra el navegador y regresa sin tu enlace, no quedar&aacute; vinculado a tu cuenta y no generar&aacute; comisi&oacute;n.</p>
+        </div>
+        <div style="margin-top:0.75rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.75rem;text-align:center;">
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">&#9658; Reproducciones del video (7d)</div>
+                <div style="font-size:1.4rem;font-weight:800;color:#86efac;margin-top:0.15rem;">{{ video_views_7d or 0 }}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.75rem;text-align:center;">
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">&#9658; Reproducciones totales</div>
+                <div style="font-size:1.4rem;font-weight:800;color:#fff;margin-top:0.15rem;">{{ video_views_total or 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="aff-card" style="border-left:4px solid #FA8072;">
+        <h2>&#128176; &iquest;C&oacute;mo Funciona la Comisi&oacute;n?</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:0.5rem;">
+            <div style="text-align:center;padding:0.75rem;">
+                <div style="font-size:1.5rem;margin-bottom:0.25rem;">1&#65039;&#8419;</div>
+                <div style="font-weight:700;font-size:0.85rem;color:#374151;">Comparte tu enlace</div>
+                <div style="font-size:0.78rem;color:#6b7280;margin-top:0.25rem;">Tu prospecto accede a Pertinentia con precio especial de <strong>$500 MXN</strong> (vs $999 regular)</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;">
+                <div style="font-size:1.5rem;margin-bottom:0.25rem;">2&#65039;&#8419;</div>
+                <div style="font-weight:700;font-size:0.85rem;color:#374151;">El prospecto paga</div>
+                <div style="font-size:0.78rem;color:#6b7280;margin-top:0.25rem;">Compra PRO por $500 MXN (pago &uacute;nico por curso). Tu comisi&oacute;n del <strong>30% = $150 MXN</strong> queda registrada</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;">
+                <div style="font-size:1.5rem;margin-bottom:0.25rem;">3&#65039;&#8419;</div>
+                <div style="font-weight:700;font-size:0.85rem;color:#374151;">Emite tu factura</div>
+                <div style="font-size:0.78rem;color:#6b7280;margin-top:0.25rem;">Sube tu CFDI 4.0 (PDF + XML) aqu&iacute; mismo. Pago en <strong>10-15 d&iacute;as h&aacute;biles</strong> tras recibir factura</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="aff-card">
+        <h2>R&eacute;gimen Fiscal</h2>
+        <p style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;">Selecciona tu r&eacute;gimen para calcular retenciones en tiempo real.</p>
+        <div class="aff-regime-selector">
+            <button class="aff-regime-btn {{ 'active' if current_user.tax_regime == 'RESICO' }}" data-regime="RESICO" onclick="selectRegime('RESICO', this)">RESICO</button>
+            <button class="aff-regime-btn {{ 'active' if current_user.tax_regime == 'PFAE' }}" data-regime="PFAE" onclick="selectRegime('PFAE', this)">PFAE / Honorarios</button>
+        </div>
+        <div class="aff-calc-box">
+            <div class="aff-calc-title" id="comisionBaseLabel">Comisi&oacute;n neta estimada (PRO Afiliado $500 &times; <span id="comisionPctDisplay">{{ comision_pct }}</span> = $<span id="comisionBaseDisplay">0</span> MXN):</div>
+            <div class="aff-calc-amount" id="netAmount">$0.00 MXN</div>
+        </div>
+    </div>
+
+    <div class="aff-card">
+        <h2>Registrar Prospecto</h2>
+        <form id="leadForm" onsubmit="registerLead(event)">
+            <div class="aff-form-row">
+                <input type="text" id="prospectName" placeholder="Nombre completo del prospecto" required>
+                <input type="email" id="prospectEmail" placeholder="Correo electr&oacute;nico" required>
+            </div>
+            <div class="aff-form-row">
+                <input type="text" id="prospectWhatsapp" placeholder="WhatsApp (opcional)">
+                <input type="text" id="prospectCeKey" placeholder="Clave CE (opcional)">
+            </div>
+            <div class="aff-form-row">
+                <select id="selectedTier" style="flex:1;padding:0.6rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;background:#fff;" onchange="updateTierEstimate()">
+                    {% for key, label in tier_labels.items() %}
+                    <option value="{{ key }}" {% if key == 'PRO_AFFILIATE' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="aff-btn" id="registerBtn">Registrar Prospecto</button>
+        </form>
+        <div class="aff-success-msg" id="successMsg"></div>
+        <div class="aff-error-msg" id="errorMsg"></div>
+    </div>
+
+    <div class="aff-card">
+        <h2>Mis Prospectos</h2>
+        {% if leads %}
+        <table class="aff-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>WhatsApp</th>
+                    <th>Plan</th>
+                    <th>Estatus</th>
+                    <th>Comisi&oacute;n Neta</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+                {% for lead in leads %}
+                <tr id="lead-row-{{ lead.id }}">
+                    <td>
+                        {{ lead.prospect_name }}
+                        {% if lead.created_via == 'autoregistro' %}
+                        <span style="display:block;font-size:0.68rem;color:#6b7280;font-style:italic;">Se registr&oacute; por tu enlace</span>
+                        {% elif lead.created_via == 'manual+autoregistro' %}
+                        <span style="display:block;font-size:0.68rem;color:#6b7280;font-style:italic;">Registrado + confirm&oacute; por enlace</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ lead.prospect_email }}</td>
+                    <td>{{ lead.prospect_whatsapp or '—' }}</td>
+                    <td style="font-size:0.78rem;" id="lead-tier-{{ lead.id }}">
+                        {{ tier_labels.get(lead.selected_tier or 'PRO_AFFILIATE', 'PRO Afiliado') }}
+                    </td>
+                    <td class="aff-status-{{ lead.status|lower }}">{{ lead.status }}</td>
+                    <td class="lead-commission" data-status='{{ lead.status }}' data-commission='{{ lead.commission_amount or 0 }}'>—</td>
+                    <td>
+                        {% if lead.status == 'Pagado' %}
+                            {% if lead.payout_status == 'Pendiente CFDI' %}
+                            <span style="color:#d97706;font-weight:600;font-size:0.78rem;">Pagado — Sube tu CFDI</span>
+                            <form onsubmit="uploadCFDI(event, {{ lead.id }})" style="margin-top:0.4rem;" id="cfdi-form-{{ lead.id }}">
+                                <input type="file" name="cfdi_pdf" accept=".pdf" required style="font-size:0.72rem;margin-bottom:0.25rem;display:block;">
+                                <input type="file" name="cfdi_xml" accept=".xml" required style="font-size:0.72rem;margin-bottom:0.25rem;display:block;">
+                                <button type="submit" class="aff-btn" style="font-size:0.72rem;padding:0.3rem 0.7rem;background:#7c3aed;">Subir CFDI</button>
+                            </form>
+                            {% elif lead.payout_status == 'CFDI en Revisión' %}
+                            <span style="color:#d97706;font-weight:600;font-size:0.82rem;">CFDI en Revisi&oacute;n</span>
+                            {% elif lead.payout_status == 'Liquidado' %}
+                            <span style="color:#16a34a;font-weight:600;font-size:0.82rem;">&#9989; Comisi&oacute;n Liquidada</span>
+                            {% else %}
+                            <span style="color:#16a34a;font-weight:600;font-size:0.82rem;">&#9989; Comisi&oacute;n Asegurada</span>
+                            {% endif %}
+                        {% else %}
+                        <button class="aff-btn" style="font-size:0.75rem;padding:0.35rem 0.7rem;background:#2563eb;" onclick="navigator.clipboard.writeText('{{ lead.payment_link }}'); this.textContent='Copiado!'; setTimeout(()=>{this.textContent='Copiar Link de Pago'},2000);">&#128203; Copiar Link de Pago</button>
+                        <button class="aff-btn" style="font-size:0.72rem;padding:0.3rem 0.6rem;background:#7c3aed;margin-left:0.2rem;" onclick="showChangeTier({{ lead.id }})">Cambiar plan</button>
+                        <button class="aff-btn" style="font-size:0.75rem;padding:0.35rem 0.7rem;background:#dc2626;margin-left:0.2rem;" onclick="deleteLead({{ lead.id }})">&#128465;</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align:center;color:#9ca3af;padding:2rem 0;">A&uacute;n no has registrado prospectos.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div style="margin-top:1rem;padding:0.75rem 1rem;background:linear-gradient(135deg,#fefce8,#fff7ed);border:1px solid #fde68a;border-radius:8px;font-size:0.78rem;color:#78350f;">
+    <strong>&#128274; Aviso de Retenci&oacute;n Fiscal (SAT)</strong>
+    <p style="margin:0.4rem 0 0;line-height:1.6;">Tus archivos CFDI (PDF y XML) se almacenan de forma encriptada y persistente por un periodo m&iacute;nimo de <strong>5 a&ntilde;os</strong>, conforme a las obligaciones de conservaci&oacute;n de comprobantes fiscales establecidas por el SAT (Art. 30 C&oacute;digo Fiscal de la Federaci&oacute;n). Los datos se resguardan exclusivamente para fines de auditor&iacute;a fiscal y no ser&aacute;n compartidos con terceros sin tu autorizaci&oacute;n expresa.</p>
+</div>
+
+{% block scripts %}{% endblock %}
+<div id="changeTierModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:2rem;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 1rem;color:#1f2937;">Cambiar Plan del Prospecto</h3>
+        <select id="changeTierSelect" style="width:100%;padding:0.6rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;margin-bottom:1rem;">
+            {% for key, label in tier_labels.items() %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <div style="display:flex;gap:0.5rem;">
+            <button class="aff-btn" style="flex:1;background:#2563eb;" onclick="confirmChangeTier()">Cambiar</button>
+            <button class="aff-btn" style="flex:1;background:#6b7280;" onclick="document.getElementById('changeTierModal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentRegime = '{{ current_user.tax_regime }}';
+var comisionPct = parseFloat('{{ comision_pct }}') || 0.30;
+var tierPrices = {{ tier_prices | tojson }};
+var tierLabels = {{ tier_labels | tojson }};
+var changeTierLeadId = null;
+
+function calcularComisionNeta(comisionBase, regimenFiscal) {
+    var iva = comisionBase * 0.16;
+    var subtotal = comisionBase + iva;
+    var retencionISR = 0;
+    var retencionIVA = comisionBase * (0.16 * (2/3));
+    if (regimenFiscal === 'RESICO') {
+        retencionISR = comisionBase * 0.0125;
+    } else if (regimenFiscal === 'PFAE') {
+        retencionISR = comisionBase * 0.10;
+    }
+    var montoNeto = subtotal - retencionISR - retencionIVA;
+    return { montoNetoPagar: montoNeto.toFixed(2) };
+}
+
+function updateCalculation() {
+    var tierSelect = document.getElementById('selectedTier');
+    var selectedTier = tierSelect ? tierSelect.value : 'PRO_AFFILIATE';
+    var precio = tierPrices[selectedTier] || 500;
+    var comisionBase = precio * comisionPct;
+    document.getElementById('comisionBaseDisplay').textContent = comisionBase.toFixed(0);
+    document.getElementById('comisionPctDisplay').textContent = comisionPct;
+    var labelEl = document.getElementById('comisionBaseLabel');
+    var tierName = tierLabels[selectedTier] || 'PRO Afiliado';
+    var shortName = tierName.split(' — ')[0] || tierName;
+    labelEl.innerHTML = 'Comisi&oacute;n neta estimada (' + shortName + ' $' + precio.toLocaleString() + ' &times; ' + comisionPct + ' = $<span id="comisionBaseDisplay">' + comisionBase.toFixed(0) + '</span> MXN):';
+    var result = calcularComisionNeta(comisionBase, currentRegime);
+    document.getElementById('netAmount').textContent = '$' + result.montoNetoPagar + ' MXN';
+
+    var cells = document.querySelectorAll('.lead-commission');
+    cells.forEach(function(cell) {
+        var comisionReal = parseFloat(cell.getAttribute('data-commission'));
+        if (comisionReal > 0) {
+            var realResult = calcularComisionNeta(comisionReal, currentRegime);
+            cell.innerHTML = '<strong>$' + realResult.montoNetoPagar + ' MXN</strong>';
+        } else {
+            cell.innerHTML = '<span style="color:#9ca3af;font-size:0.82rem;">Pendiente de pago</span>';
+        }
+    });
+}
+
+function updateTierEstimate() {
+    updateCalculation();
+}
+
+function showChangeTier(leadId) {
+    changeTierLeadId = leadId;
+    document.getElementById('changeTierModal').style.display = 'flex';
+}
+
+function confirmChangeTier() {
+    if (!changeTierLeadId) return;
+    var newTier = document.getElementById('changeTierSelect').value;
+    fetch('/api/afiliados/change_tier/' + changeTierLeadId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({selected_tier: newTier})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            var tierCell = document.getElementById('lead-tier-' + changeTierLeadId);
+            if (tierCell) tierCell.textContent = data.tier_label;
+            document.getElementById('changeTierModal').style.display = 'none';
+            location.reload();
+        } else {
+            alert(data.error || 'Error al cambiar plan');
+        }
+    });
+}
+
+function copyAffLink() {
+    var input = document.getElementById('affiliateLink');
+    var msg = document.getElementById('copyConfirm');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value).then(function() {
+            msg.style.display = 'block';
+            setTimeout(function() { msg.style.display = 'none'; }, 3000);
+        }).catch(function() {
+            input.select();
+            document.execCommand('copy');
+            msg.style.display = 'block';
+            setTimeout(function() { msg.style.display = 'none'; }, 3000);
+        });
+    } else {
+        input.select();
+        document.execCommand('copy');
+        msg.style.display = 'block';
+        setTimeout(function() { msg.style.display = 'none'; }, 3000);
+    }
+}
+
+function selectRegime(regime, btn) {
+    currentRegime = regime;
+    document.querySelectorAll('.aff-regime-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    updateCalculation();
+    fetch('/api/afiliados/update_regime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regime: regime })
+    });
+}
+
+function acceptTerms() {
+    fetch('/api/afiliados/accept_terms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(function(resp) { return resp.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('termsModal').style.display = 'none';
+        }
+    });
+}
+
+async function registerLead(e) {
+    e.preventDefault();
+    var btn = document.getElementById('registerBtn');
+    var successMsg = document.getElementById('successMsg');
+    var errorMsg = document.getElementById('errorMsg');
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Registrando...';
+
+    try {
+        var resp = await fetch('/api/afiliados/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prospect_name: document.getElementById('prospectName').value.trim(),
+                prospect_email: document.getElementById('prospectEmail').value.trim(),
+                prospect_whatsapp: document.getElementById('prospectWhatsapp').value.trim(),
+                ce_key: document.getElementById('prospectCeKey').value.trim(),
+                selected_tier: document.getElementById('selectedTier').value
+            })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            successMsg.innerHTML = '<strong>Prospecto registrado.</strong> El enlace de pago ya est&aacute; disponible en tu tabla.<br><br>Enlace de pago:<br><a href="' + data.payment_link + '" target="_blank" rel="noopener">' + data.payment_link + '</a><br><br><button class="aff-btn" style="font-size:0.8rem;padding:0.4rem 1rem;" onclick="window.location.reload()">Cerrar y actualizar tabla</button>';
+            successMsg.style.display = 'block';
+            document.getElementById('leadForm').reset();
+        } else {
+            errorMsg.textContent = data.error || 'Error al registrar.';
+            errorMsg.style.display = 'block';
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Error de conexi\u00f3n.';
+        errorMsg.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Registrar Prospecto';
+    }
+}
+
+async function uploadCFDI(e, leadId) {
+    e.preventDefault();
+    var form = document.getElementById('cfdi-form-' + leadId);
+    var formData = new FormData();
+    formData.append('cfdi_pdf', form.querySelector('[name="cfdi_pdf"]').files[0]);
+    formData.append('cfdi_xml', form.querySelector('[name="cfdi_xml"]').files[0]);
+    try {
+        var resp = await fetch('/api/afiliados/upload_cfdi/' + leadId, {
+            method: 'POST',
+            body: formData
+        });
+        var data = await resp.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert(data.error || 'Error al subir CFDI.');
+        }
+    } catch (err) {
+        alert('Error de conexi\u00f3n.');
+    }
+}
+
+async function deleteLead(leadId) {
+    if (!confirm('¿Est\u00e1s seguro de eliminar este prospecto? El enlace de pago dejar\u00e1 de funcionar.')) return;
+    try {
+        var resp = await fetch('/api/afiliados/delete/' + leadId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var row = document.getElementById('lead-row-' + leadId);
+            if (row) row.remove();
+        } else {
+            alert(data.error || 'Error al eliminar.');
+        }
+    } catch (err) {
+        alert('Error de conexi\u00f3n.');
+    }
+}
+
+var termsCheck = document.getElementById('acceptTermsCheck');
+if (termsCheck) {
+    termsCheck.addEventListener('change', function() {
+        document.getElementById('acceptTermsBtn').disabled = !this.checked;
+    });
+}
+
+updateCalculation();
+</script>
+{% endblock %}

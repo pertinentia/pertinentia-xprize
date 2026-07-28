@@ -1,0 +1,596 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>Portal de Anunciantes</h1>
+    <p>Contrata espacios publicitarios digitales en Pertinentia&reg;</p>
+</div>
+
+<style>
+.pub-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+@media (max-width: 768px) { .pub-split { grid-template-columns: 1fr; } }
+.pub-card { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #e5e7eb; }
+.pub-card h2 { font-size: 1.1rem; color: #374151; margin-bottom: 1rem; }
+.pub-form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.pub-form-row input, .pub-form-row select, .pub-form-row textarea { flex: 1; min-width: 140px; padding: 0.6rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.88rem; font-family: inherit; }
+.pub-form-row textarea { min-height: 60px; resize: vertical; }
+.pub-label { font-size: 0.82rem; color: #6b7280; margin-bottom: 0.25rem; font-weight: 600; display: block; }
+.pub-btn { background: #FA8072; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: opacity 0.2s; }
+.pub-btn:hover { opacity: 0.85; }
+.pub-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pub-calc-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
+.pub-calc-row { display: flex; justify-content: space-between; font-size: 0.88rem; color: #374151; padding: 0.3rem 0; }
+.pub-calc-row.total { font-weight: 800; font-size: 1.1rem; color: #0c4a6e; border-top: 2px solid #7dd3fc; margin-top: 0.5rem; padding-top: 0.6rem; }
+.pub-error-msg { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; color: #991b1b; font-size: 0.85rem; display: none; font-weight: 600; }
+.pub-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.pub-table th { background: #f9fafb; text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+.pub-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f3f4f6; color: #374151; }
+.pub-status-pendiente-pago { color: #d97706; font-weight: 600; }
+.pub-status-pendiente-de-revision { color: #2563eb; font-weight: 600; }
+.pub-status-activo { color: #16a34a; font-weight: 600; }
+.pub-status-rechazado { color: #dc2626; font-weight: 600; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: #fff; border-radius: 16px; padding: 2rem; max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto; }
+.modal-box h2 { font-size: 1.2rem; color: #374151; margin-bottom: 1rem; }
+.legal-contract { font-size: 0.82rem; color: #4b5563; line-height: 1.6; max-height: 16rem; overflow-y: auto; border: 1px solid #e5e7eb; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+.legal-contract h3 { text-align: center; font-weight: 700; margin-bottom: 1rem; font-size: 0.9rem; }
+.legal-contract h4 { font-weight: 700; margin-top: 0.75rem; font-size: 0.85rem; }
+.legal-contract strong { color: #111827; }
+.sig-canvas-wrap { border: 2px dashed #d1d5db; border-radius: 8px; padding: 0.5rem; margin: 1rem 0; text-align: center; }
+.sig-canvas-wrap canvas { background: #fff; border-radius: 4px; cursor: crosshair; }
+.sig-actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.75rem; }
+.preview-card { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; animation: previewPulse 3s ease-in-out infinite; }
+@keyframes previewPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(250,128,114,0.3); } 50% { box-shadow: 0 0 16px 4px rgba(250,128,114,0.15); } }
+.preview-card-inner { display: flex; align-items: stretch; min-height: 180px; background: linear-gradient(135deg, rgba(250,128,114,0.12), rgba(124,58,237,0.06)); }
+.preview-img-wrap { flex: 3; min-width: 0; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.preview-img-wrap img { width: 100%; height: 100%; object-fit: contain; }
+.preview-img-placeholder { color: #9ca3af; font-size: 0.75rem; text-align: center; padding: 0.5rem; }
+.preview-text-wrap { flex: 2; min-width: 0; padding: 1rem; display: flex; flex-direction: column; justify-content: center; }
+.preview-title { font-weight: 700; font-size: 0.95rem; color: #1f2937; margin-bottom: 0.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-desc { font-size: 0.78rem; color: #6b7280; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.preview-badge { display: inline-block; font-size: 0.65rem; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 10px; color: #6b7280; margin-top: 0.5rem; }
+#confirmAdModal .confirm-modal-box { background: #fff; border-radius: 16px; padding: 2rem; max-width: 480px; width: 92%; text-align: center; }
+#confirmAdModal .confirm-modal-box h2 { font-size: 1.15rem; color: #1a1a2e; margin-bottom: 1rem; font-weight: 700; }
+#confirmAdModal .confirm-modal-box p { font-size: 0.85rem; color: #4b5563; line-height: 1.6; margin-bottom: 1.5rem; }
+#confirmAdModal .confirm-btns { display: flex; gap: 0.75rem; justify-content: center; }
+#confirmAdModal .confirm-btns button { padding: 0.65rem 1.5rem; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; transition: opacity 0.2s; }
+#confirmAdModal .btn-cancel-confirm { background: #e5e7eb; color: #374151; }
+#confirmAdModal .btn-proceed-confirm { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
+.pub-upload-zone { border: 2px dashed #d1d5db; border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
+.pub-upload-zone:hover { border-color: #FA8072; }
+.pub-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pub-upload-zone img { max-width: 100%; max-height: 120px; border-radius: 6px; margin-top: 0.5rem; }
+.pub-days-badge { display: inline-block; background: #dbeafe; color: #1e40af; font-weight: 700; padding: 0.3rem 0.8rem; border-radius: 8px; font-size: 0.85rem; margin-top: 0.4rem; }
+</style>
+
+<div class="pub-split">
+    <div>
+        <div class="pub-card">
+            <h2>Crear Campa&ntilde;a Publicitaria</h2>
+            <form id="adForm" onsubmit="submitAdForm(event)">
+                <div class="pub-form-row">
+                    <div style="flex:1;min-width:140px;">
+                        <label class="pub-label">T&iacute;tulo de la Campa&ntilde;a</label>
+                        <input type="text" id="adTitle" placeholder="Nombre de tu campa&ntilde;a" required style="width:100%;box-sizing:border-box;" oninput="updatePreview()">
+                    </div>
+                </div>
+                <div class="pub-form-row">
+                    <div style="flex:1;min-width:140px;">
+                        <label class="pub-label">URL Destino (landing page)</label>
+                        <input type="url" id="adUrl" placeholder="https://tu-sitio.com/landing" required style="width:100%;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div class="pub-form-row">
+                    <div style="flex:1;min-width:140px;">
+                        <label class="pub-label">Descripci&oacute;n (opcional)</label>
+                        <textarea id="adDescription" placeholder="Breve descripci&oacute;n de tu campa&ntilde;a" style="width:100%;box-sizing:border-box;" oninput="updatePreview()"></textarea>
+                    </div>
+                </div>
+                <div style="margin-bottom:0.75rem;">
+                    <label class="pub-label">Imagen del Anuncio (PNG/JPG, m&aacute;x 2MB)</label>
+                    <div class="pub-upload-zone" id="uploadZone">
+                        <input type="file" id="adImage" accept=".png,.jpg,.jpeg" onchange="handleImageUpload(this)">
+                        <div id="uploadPlaceholder"><span style="font-size:1.5rem;">&#128247;</span><br><span style="font-size:0.78rem;color:#6b7280;">Arrastra o haz clic para subir imagen</span></div>
+                        <img id="uploadPreviewImg" style="display:none;" alt="Vista previa">
+                    </div>
+                    <div class="pub-error-msg" id="imageErrorMsg"></div>
+                </div>
+                <div class="pub-form-row">
+                    <div style="flex:1;min-width:120px;">
+                        <label class="pub-label">Fecha de Inicio</label>
+                        <input type="date" id="adStartDate" required style="width:100%;box-sizing:border-box;" onchange="validateStartDate()">
+                        <div id="saturatedWarning" style="display:none;margin-top:0.35rem;font-size:0.75rem;color:#d97706;font-weight:600;line-height:1.3;">&#9888; Fecha comprometida. Selecciona otro d&iacute;a disponible.</div>
+                    </div>
+                    <div style="flex:1;min-width:120px;">
+                        <label class="pub-label">Fecha de T&eacute;rmino (calculada)</label>
+                        <input type="date" id="adEndDate" readonly style="width:100%;box-sizing:border-box;background:#f3f4f6;color:#6b7280;">
+                    </div>
+                </div>
+                <p style="font-size:0.72rem;color:#9ca3af;margin:-0.4rem 0 0.75rem;line-height:1.4;">Nota: Si seleccionas una fecha comprometida, se te notificar&aacute; y deber&aacute;s elegir el siguiente d&iacute;a disponible.</p>
+                <div class="pub-form-row">
+                    <div style="flex:1;min-width:140px;">
+                        <label class="pub-label">Decide tu Presupuesto (MXN) — m&iacute;nimo $500 &bull; Tarifa: ${{ '%.0f'|format(cost_per_day) }}/d&iacute;a</label>
+                        <input type="range" id="adBudget" min="500" max="100000" step="500" value="500" oninput="updateBudgetCalc()" style="width:100%;">
+                        <div style="text-align:center;font-size:0.9rem;font-weight:700;color:#374151;margin-top:0.25rem;" id="budgetLabel">$500 MXN</div>
+                        <div style="text-align:center;" id="daysLabel"><span class="pub-days-badge">3 d&iacute;as de campa&ntilde;a</span></div>
+                    </div>
+                </div>
+                <div class="pub-calc-box">
+                    <div class="pub-calc-row"><span>Subtotal:</span><span id="calcSubtotal">$431.03 MXN</span></div>
+                    <div class="pub-calc-row"><span>IVA (16%):</span><span id="calcIVA">$68.97 MXN</span></div>
+                    <div class="pub-calc-row total"><span>Total:</span><span id="calcTotal">$500.00 MXN</span></div>
+                    <div id="contractNotice" style="margin-top:0.5rem;font-size:0.78rem;color:#991b1b;font-weight:600;display:none;">&#128274; Montos superiores a $10,000 MXN requieren firma de Contrato Maestro de Publicidad Digital.</div>
+                </div>
+                <div style="margin-top:1rem;text-align:center;">
+                    <button type="submit" class="pub-btn" id="submitAdBtn">Proceder al Pago</button>
+                </div>
+            </form>
+            <div class="pub-error-msg" id="adErrorMsg"></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="pub-card">
+            <h2>Vista Previa en Vivo</h2>
+            <p style="font-size:0.78rem;color:#6b7280;margin-bottom:1rem;">As&iacute; se ver&aacute; tu anuncio en la plataforma:</p>
+            <div class="preview-card">
+                <div class="preview-card-inner">
+                    <div class="preview-img-wrap" id="previewImgWrap">
+                        <div class="preview-img-placeholder" id="previewImgPlaceholder">Sin imagen</div>
+                    </div>
+                    <div class="preview-text-wrap">
+                        <div class="preview-title" id="previewTitle">T&iacute;tulo de tu campa&ntilde;a</div>
+                        <div class="preview-desc" id="previewDesc">La descripci&oacute;n aparecer&aacute; aqu&iacute;...</div>
+                        <span class="preview-badge">Publicidad</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pub-card">
+            <h2>Mis Campa&ntilde;as</h2>
+            {% if my_ads %}
+            <table class="pub-table">
+                <thead>
+                    <tr>
+                        <th>Campa&ntilde;a</th>
+                        <th>Periodo</th>
+                        <th>Total</th>
+                        <th>Estatus</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ad in my_ads %}
+                    <tr id="ad-row-{{ ad.id }}">
+                        <td>{{ ad.title }}</td>
+                        <td>{{ ad.starts_at or '—' }} / {{ ad.ends_at or '—' }}</td>
+                        <td>{{ '$%.2f'|format(ad.total_cost or 0) }} MXN</td>
+                        <td class="pub-status-{{ (ad.status or '')|lower|replace(' ', '-') }}">{{ ad.status }}</td>
+                        <td>{% if ad.status == 'Pendiente Pago' %}<button onclick="deleteAd({{ ad.id }})" style="background:#dc2626;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Borrar</button>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="text-align:center;color:#9ca3af;padding:2rem 0;">A&uacute;n no has creado campa&ntilde;as.</p>
+            {% endif %}
+        </div>
+
+        <div class="pub-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                <h2 style="margin:0;">Reportar Incidencia</h2>
+                <button onclick="document.getElementById('issueFormWrap').style.display=document.getElementById('issueFormWrap').style.display==='none'?'block':'none'" class="pub-btn" style="padding:6px 14px;font-size:0.82rem;background:#d97706;">Registrar Incidencia</button>
+            </div>
+            <div id="issueFormWrap" style="display:none;background:linear-gradient(135deg,#fefce8,#fff7ed);border:1px solid #fde68a;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div>
+                        <label class="pub-label">Tipo de Problema</label>
+                        <select id="issueType" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+                            <option value="pago">Problema de Pago</option>
+                            <option value="imagen">Imagen/Creativo Rechazado</option>
+                            <option value="activacion">Campa&ntilde;a No Activa</option>
+                            <option value="rendimiento">Bajo Rendimiento</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <label class="pub-label">Descripci&oacute;n</label>
+                        <textarea id="issueDesc" rows="3" placeholder="Describe el problema con detalle..." style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.85rem;box-sizing:border-box;resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <button onclick="submitAdIssue()" class="pub-btn" style="margin-top:0.8rem;background:#d97706;padding:8px 18px;font-size:0.85rem;">Guardar Incidencia</button>
+                <div id="issueMsg" style="margin-top:0.5rem;font-size:0.82rem;display:none;"></div>
+            </div>
+            <div id="myIssuesList"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="confirmAdModal">
+    <div class="confirm-modal-box">
+        <h2>&#128274; Confirmaci&oacute;n Final de Campa&ntilde;a</h2>
+        <p>&iquest;Est&aacute;s seguro de continuar con el pago? Una vez autorizado el pago y aprobado el anuncio, <strong>NO podr&aacute;s editarlo ni borrarlo</strong>, y permanecer&aacute; inalterable hasta la conclusi&oacute;n de su vigencia contratada.</p>
+        <div class="confirm-btns">
+            <button class="btn-cancel-confirm" onclick="closeConfirmModal()">Cancelar</button>
+            <button class="btn-proceed-confirm" onclick="proceedAfterConfirm()">Confirmar y Proceder al Pago</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-agreement">
+    <div class="modal-box">
+        <h2>Contrato Maestro de Publicidad Digital</h2>
+        <p style="font-size:0.82rem;color:#6b7280;margin-bottom:0.75rem;">Lee el contrato completo y firma digitalmente para continuar.</p>
+        <div class="legal-contract">
+            <h3>CONTRATO DE PRESTACI&Oacute;N DE SERVICIOS DE PUBLICIDAD DIGITAL</h3>
+            <p>Que celebran, por una parte, <strong>HUB CERTIFICADOR DE COMPETENCIAS LABORALES S.A.S. DE C.V.</strong>, representada en este acto por <strong>Arturo Garc&iacute;a Cristia</strong>, a quien en lo sucesivo se le denominar&aacute; &ldquo;EL PRESTADOR&rdquo;; y por la otra parte, <strong>{{ current_user.razon_social or '' }}</strong>, representada por <strong>{{ current_user.nombre_representante_legal or '' }}</strong>, a quien en lo sucesivo se le denominar&aacute; &ldquo;EL ANUNCIANTE&rdquo;; al tenor de las siguientes declaraciones y cl&aacute;usulas:</p>
+            <h4>DECLARACIONES</h4>
+            <p><strong>I. Declara EL PRESTADOR:</strong><br>
+            a) Ser una Sociedad por Acciones Simplificada legalmente constituida conforme a las leyes mexicanas, con domicilio fiscal en 2 de Octubre No. Ext 6, Int. A, Santiago, Tezoyuca, Estado de M&eacute;xico, C.P. 56000.<br>
+            b) Ser el leg&iacute;timo propietario y operador de la plataforma tecnol&oacute;gica de software como servicio (SaaS) denominada comercialmente Pertinentia&reg;.<br>
+            c) Contar con la capacidad t&eacute;cnica y de infraestructura para comercializar espacios publicitarios digitales dentro de su plataforma.</p>
+            <p><strong>II. Declara EL ANUNCIANTE:</strong><br>
+            a) Ser una entidad legalmente constituida (o persona f&iacute;sica con actividad empresarial) con Registro Federal de Contribuyentes <strong>{{ current_user.rfc or '_________________' }}</strong>.<br>
+            b) Que es su voluntad contratar los espacios publicitarios digitales de EL PRESTADOR para la difusi&oacute;n de su marca, productos o servicios, declarando bajo protesta de decir verdad que los recursos con los que pagar&aacute; la contraprestaci&oacute;n provienen de fuentes l&iacute;citas.</p>
+            <h4>CL&Aacute;USULAS</h4>
+            <p><strong>PRIMERA. OBJETO.</strong><br>
+            EL PRESTADOR se obliga a proporcionar a EL ANUNCIANTE el servicio de exhibici&oacute;n de publicidad digital mediante la inserci&oacute;n de banners, enlaces o material gr&aacute;fico en el M&oacute;dulo Publicitario de la plataforma Pertinentia&reg;, exhibi&eacute;ndose de manera exclusiva en las interfaces operativas de los usuarios bajo la modalidad gratuita (Plan FREE), durante el periodo comprendido del <span id="contract-start-date" style="font-weight:700;"></span> al <span id="contract-end-date" style="font-weight:700;"></span>.</p>
+            <p><strong>SEGUNDA. CONTRAPRESTACI&Oacute;N Y FACTURACI&Oacute;N.</strong><br>
+            EL ANUNCIANTE pagar&aacute; a EL PRESTADOR por los servicios objeto de este contrato la cantidad de $<span id="contract-subtotal" style="font-weight:700;"></span> MXN m&aacute;s el 16% del Impuesto al Valor Agregado (IVA), dando un total de $<span id="contract-total" style="font-weight:700;"></span> MXN. El pago se realizar&aacute; mediante la pasarela de pagos autorizada (Stripe). EL PRESTADOR emitir&aacute; el Comprobante Fiscal Digital por Internet (CFDI 4.0) correspondiente dentro de las 24 horas siguientes a la confirmaci&oacute;n del pago.</p>
+            <p><strong>TERCERA. MATERIALIDAD DE LA OPERACI&Oacute;N (ENTREGABLES).</strong><br>
+            Para dar estricto cumplimiento a la materialidad fiscal exigida por las autoridades hacendarias, EL PRESTADOR entregar&aacute; a EL ANUNCIANTE al t&eacute;rmino de la campa&ntilde;a un Dossier de M&eacute;tricas que servir&aacute; como evidencia de la ejecuci&oacute;n del servicio. El Dossier de M&eacute;tricas (impresiones y CTR) se entrega con fines estrictamente informativos y de reporte de rendimiento, sin que dichas m&eacute;tricas condicionen la vigencia o el costo de la campa&ntilde;a contratada.</p>
+            <p><strong>CUARTA. RESPONSABILIDAD DE CONTENIDOS Y PROPIEDAD INTELECTUAL.</strong><br>
+            EL ANUNCIANTE asume la responsabilidad total, absoluta y exclusiva sobre el contenido de su pauta publicitaria, liberando a EL PRESTADOR de cualquier responsabilidad frente a terceros o autoridades (como PROFECO o IMPI). EL PRESTADOR se reserva el derecho de suspender la campa&ntilde;a sin reembolso si el contenido viola las leyes mexicanas.</p>
+            <p><strong>QUINTA. CONFIDENCIALIDAD.</strong><br>
+            Las partes acuerdan mantener estricta confidencialidad sobre los t&eacute;rminos econ&oacute;micos y m&eacute;tricas derivadas de la ejecuci&oacute;n de este contrato.</p>
+            <p><strong>SEXTA. CONSENTIMIENTO ELECTR&Oacute;NICO.</strong><br>
+            Las partes acuerdan que la aceptaci&oacute;n de este contrato mediante medios electr&oacute;nicos (firma digital trazada), en conjunto con los registros de fecha, hora y direcci&oacute;n IP almacenados por EL PRESTADOR, tiene plena validez legal y fuerza vinculante en t&eacute;rminos del C&oacute;digo de Comercio y la Norma Oficial Mexicana NOM-151-SCFI-2016.</p>
+            <p><strong>S&Eacute;PTIMA. JURISDICCI&Oacute;N.</strong><br>
+            Para la interpretaci&oacute;n y cumplimiento del presente contrato, las partes se someten a las leyes aplicables y a los tribunales competentes con sede en el Estado de M&eacute;xico.</p>
+            <p>Aceptado digitalmente en la plataforma Pertinentia&reg; el <span id="contract-date" style="font-weight:700;"></span>.</p>
+        </div>
+        <div class="sig-canvas-wrap">
+            <p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.5rem;">Traza tu firma con el mouse o dedo:</p>
+            <canvas id="signatureCanvas" width="600" height="200"></canvas>
+        </div>
+        <div class="sig-actions">
+            <button type="button" class="pub-btn" style="background:#6b7280;" onclick="clearSignature()">Borrar Firma</button>
+            <button type="button" class="pub-btn" style="background:#7c3aed;" id="signAndPayBtn" onclick="signAndPay()">Firmar y Proceder al Pago</button>
+        </div>
+        <button type="button" style="margin-top:0.75rem;background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.82rem;text-decoration:underline;display:block;text-align:center;width:100%;" onclick="closeModal()">Cancelar</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+<script>
+var signaturePad;
+var pendingPayload = null;
+var uploadedImageUrl = '';
+var COST_PER_DAY = {{ cost_per_day }};
+var saturatedDates = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    var canvas = document.getElementById('signatureCanvas');
+    if (canvas) {
+        signaturePad = new SignaturePad(canvas, {
+            penColor: '#1e3a5f',
+            minWidth: 1,
+            maxWidth: 2.5
+        });
+    }
+    var today = new Date();
+    var y = today.getFullYear();
+    var m = String(today.getMonth() + 1).padStart(2, '0');
+    var d = String(today.getDate()).padStart(2, '0');
+    var minDate = y + '-' + m + '-' + d;
+    var startInput = document.getElementById('adStartDate');
+    startInput.setAttribute('min', minDate);
+    startInput.value = minDate;
+    updateBudgetCalc();
+    fetchAvailability();
+});
+
+async function fetchAvailability() {
+    try {
+        var resp = await fetch('/api/ads/availability');
+        var data = await resp.json();
+        saturatedDates = data.saturated_dates || [];
+        validateStartDate();
+    } catch (err) {
+        saturatedDates = [];
+    }
+}
+
+function validateStartDate() {
+    var startInput = document.getElementById('adStartDate');
+    var warning = document.getElementById('saturatedWarning');
+    var submitBtn = document.getElementById('submitAdBtn');
+    var val = startInput.value;
+    if (val && saturatedDates.indexOf(val) !== -1) {
+        warning.style.display = 'block';
+        submitBtn.disabled = true;
+        startInput.style.borderColor = '#d97706';
+    } else {
+        warning.style.display = 'none';
+        submitBtn.disabled = false;
+        startInput.style.borderColor = '#d1d5db';
+        recalcEndDate();
+    }
+}
+
+function formatCurrency(n) {
+    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' MXN';
+}
+
+function updatePreview() {
+    var title = document.getElementById('adTitle').value.trim() || 'T\u00edtulo de tu campa\u00f1a';
+    var desc = document.getElementById('adDescription').value.trim() || 'La descripci\u00f3n aparecer\u00e1 aqu\u00ed...';
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewDesc').textContent = desc;
+}
+
+async function handleImageUpload(input) {
+    var errMsg = document.getElementById('imageErrorMsg');
+    errMsg.style.display = 'none';
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (['png', 'jpg', 'jpeg'].indexOf(ext) === -1) {
+        errMsg.textContent = 'Solo se aceptan im\u00e1genes PNG, JPG o JPEG.';
+        errMsg.style.display = 'block';
+        input.value = '';
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        errMsg.textContent = 'La imagen no debe superar 2MB.';
+        errMsg.style.display = 'block';
+        input.value = '';
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('uploadPreviewImg').src = e.target.result;
+        document.getElementById('uploadPreviewImg').style.display = 'block';
+        document.getElementById('uploadPlaceholder').style.display = 'none';
+        var wrap = document.getElementById('previewImgWrap');
+        wrap.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;" alt="Preview">';
+    };
+    reader.readAsDataURL(file);
+    var formData = new FormData();
+    formData.append('image', file);
+    try {
+        var resp = await fetch('/api/ads/upload-image', { method: 'POST', body: formData });
+        var data = await resp.json();
+        if (data.success) {
+            uploadedImageUrl = data.image_url;
+        } else {
+            errMsg.textContent = data.error || 'Error al subir imagen.';
+            errMsg.style.display = 'block';
+        }
+    } catch (err) {
+        errMsg.textContent = 'Error de conexi\u00f3n al subir imagen.';
+        errMsg.style.display = 'block';
+    }
+}
+
+function calcDays(budget) {
+    return Math.max(1, Math.floor(budget / COST_PER_DAY));
+}
+
+function addDays(dateStr, days) {
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+}
+
+function recalcEndDate() {
+    var startDate = document.getElementById('adStartDate').value;
+    var budget = parseFloat(document.getElementById('adBudget').value);
+    if (startDate) {
+        var days = calcDays(budget);
+        document.getElementById('adEndDate').value = addDays(startDate, days);
+    }
+}
+
+function updateBudgetCalc() {
+    var budget = parseFloat(document.getElementById('adBudget').value);
+    var subtotal = budget / 1.16;
+    var iva = budget - subtotal;
+    var days = calcDays(budget);
+    document.getElementById('budgetLabel').textContent = formatCurrency(budget);
+    document.getElementById('calcSubtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('calcIVA').textContent = formatCurrency(iva);
+    document.getElementById('calcTotal').textContent = formatCurrency(budget);
+    document.getElementById('daysLabel').innerHTML = '<span class="pub-days-badge">' + days + ' d\u00eda' + (days !== 1 ? 's' : '') + ' de campa\u00f1a</span>';
+    var notice = document.getElementById('contractNotice');
+    notice.style.display = budget > 10000 ? 'block' : 'none';
+    recalcEndDate();
+}
+
+function openModal(payload) {
+    pendingPayload = payload;
+    var subtotal = payload.total_cost / 1.16;
+    document.getElementById('contract-subtotal').textContent = subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('contract-total').textContent = payload.total_cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('contract-start-date').textContent = payload.starts_at;
+    var days = calcDays(payload.total_cost);
+    document.getElementById('contract-end-date').textContent = addDays(payload.starts_at, days);
+    var now = new Date();
+    document.getElementById('contract-date').textContent = now.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    if (signaturePad) signaturePad.clear();
+    document.getElementById('modal-agreement').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-agreement').classList.remove('active');
+    pendingPayload = null;
+}
+
+function clearSignature() {
+    if (signaturePad) signaturePad.clear();
+}
+
+function signAndPay() {
+    if (!signaturePad || signaturePad.isEmpty()) {
+        alert('Debes trazar tu firma digital para continuar.');
+        return;
+    }
+    if (!pendingPayload) return;
+    var payload = Object.assign({}, pendingPayload);
+    payload.signature_image = signaturePad.toDataURL('image/png');
+    closeModal();
+    sendPayload(payload);
+}
+
+async function submitAdForm(e) {
+    e.preventDefault();
+    var errorMsg = document.getElementById('adErrorMsg');
+    errorMsg.style.display = 'none';
+
+    var payload = {
+        title: document.getElementById('adTitle').value.trim(),
+        target_url: document.getElementById('adUrl').value.trim(),
+        description: (document.getElementById('adDescription').value || '').trim(),
+        starts_at: document.getElementById('adStartDate').value,
+        total_cost: parseFloat(document.getElementById('adBudget').value),
+        image_url: uploadedImageUrl
+    };
+
+    if (!payload.title || !payload.target_url) {
+        errorMsg.textContent = 'El t\u00edtulo y la URL son obligatorios.';
+        errorMsg.style.display = 'block';
+        return;
+    }
+    if (!payload.starts_at) {
+        errorMsg.textContent = 'Debes seleccionar la fecha de inicio.';
+        errorMsg.style.display = 'block';
+        return;
+    }
+    if (saturatedDates.indexOf(payload.starts_at) !== -1) {
+        errorMsg.textContent = 'La fecha seleccionada está comprometida. Elige otra fecha.';
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    confirmedPayload = payload;
+    document.getElementById('confirmAdModal').classList.add('active');
+}
+
+var confirmedPayload = null;
+
+function closeConfirmModal() {
+    document.getElementById('confirmAdModal').classList.remove('active');
+    confirmedPayload = null;
+}
+
+function proceedAfterConfirm() {
+    document.getElementById('confirmAdModal').classList.remove('active');
+    if (!confirmedPayload) return;
+    var payload = confirmedPayload;
+    confirmedPayload = null;
+    if (payload.total_cost > 10000) {
+        openModal(payload);
+    } else {
+        sendPayload(payload);
+    }
+}
+
+async function sendPayload(payload) {
+    var btn = document.getElementById('submitAdBtn');
+    var errorMsg = document.getElementById('adErrorMsg');
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+    errorMsg.style.display = 'none';
+
+    try {
+        var resp = await fetch('/api/ads/create-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        var data = await resp.json();
+        if (data.success && data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            errorMsg.textContent = data.error || 'Error al crear la sesi\u00f3n de pago.';
+            errorMsg.style.display = 'block';
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Error de conexi\u00f3n. Intenta de nuevo.';
+        errorMsg.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Proceder al Pago';
+    }
+}
+
+async function submitAdIssue() {
+    var issueType = document.getElementById('issueType').value;
+    var issueDesc = document.getElementById('issueDesc').value.trim();
+    var msgEl = document.getElementById('issueMsg');
+    if (!issueDesc) { alert('Describe el problema.'); return; }
+    try {
+        var resp = await fetch('/api/ads/report-issue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: issueType, description: issueDesc })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            document.getElementById('issueDesc').value = '';
+            msgEl.style.display = 'block';
+            msgEl.style.color = '#16a34a';
+            msgEl.textContent = 'Incidencia registrada. Se ha notificado al equipo de soporte.';
+            renderMyIssues(data.issues);
+            setTimeout(function() { msgEl.style.display = 'none'; }, 4000);
+        } else {
+            msgEl.style.display = 'block';
+            msgEl.style.color = '#dc2626';
+            msgEl.textContent = data.error || 'Error al registrar.';
+        }
+    } catch (err) {
+        msgEl.style.display = 'block';
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = 'Error de conexi\u00f3n.';
+    }
+}
+
+function renderMyIssues(issues) {
+    var container = document.getElementById('myIssuesList');
+    if (!issues || !issues.length) { container.innerHTML = ''; return; }
+    var statusColors = { 'Abierto': '#d97706', 'En Proceso': '#2563eb', 'Resuelto': '#16a34a' };
+    var html = '<table class="pub-table" style="margin-top:0.75rem;"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripci\u00f3n</th><th>Estado</th></tr></thead><tbody>';
+    issues.forEach(function(i) {
+        var color = statusColors[i.status] || '#6b7280';
+        html += '<tr><td>' + i.date + '</td><td>' + i.type + '</td><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + i.description + '</td><td style="color:' + color + ';font-weight:600;">' + i.status + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+(function loadMyIssues() {
+    fetch('/api/ads/my-issues').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.issues) renderMyIssues(data.issues);
+    }).catch(function() {});
+})();
+
+async function deleteAd(adId) {
+    if (!confirm('\u00bfEliminar esta campa\u00f1a pendiente de pago?')) return;
+    try {
+        var resp = await fetch('/api/ads/delete/' + adId, { method: 'POST' });
+        var data = await resp.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'No se pudo eliminar la campa\u00f1a.');
+        }
+    } catch (err) {
+        alert('Error de conexi\u00f3n al intentar eliminar.');
+    }
+}
+</script>
+{% endblock %}

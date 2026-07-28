@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block meta_description %}Manual del participante y manual del instructor para EC0301 y EC0217.01: estructura, ejemplo y generador con IA alineado al CONOCER.{% endblock %}
+{% block og_title %}Manuales del Curso EC0301 y EC0217.01 — Participante e Instructor{% endblock %}
+{% block og_description %}Estructura completa del manual del participante y del instructor exigida por el EC0301 y EC0217.01. Genera ambos con IA en PertinentIA.{% endblock %}
+{% block meta_keywords %}manual del participante, manual del instructor, EC0301 y EC0217.01, manual de curso, CONOCER{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">{{ {
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[
+    {"@type":"Question","name":"¿El EC0301 y EC0217.01 exige dos manuales distintos?","acceptedAnswer":{"@type":"Answer","text":"Sí. El EC0301 pide explícitamente manual del participante y manual del instructor. Cubren la misma temática pero con propósito distinto: el del participante es material de estudio; el del instructor es guía de impartición."}},
+    {"@type":"Question","name":"¿Qué debe incluir el manual del participante?","acceptedAnswer":{"@type":"Answer","text":"Portada, índice, introducción, objetivos, contenido por unidad con ejercicios y autoevaluaciones, glosario y bibliografía. Para EC0301 y EC0217.01 debe estar alineado a la carta descriptiva."}}
+  ]
+} | tojson | safe }}</script>
+{% endblock %}
+{% block content %}
+<article class="seo-landing">
+<header class="seo-hero">
+  <span class="seo-badge">EC0301 y EC0217.01 · Elemento 3</span>
+  <h1>Manuales del Curso EC0301 y EC0217.01: participante e instructor</h1>
+  <p class="seo-lede">El estándar EC0301 y EC0217.01 exige <strong>dos manuales</strong>, no uno. Aquí te explico la estructura exacta de cada uno y cómo generarlos con IA partiendo de tu carta descriptiva.</p>
+  <a href="/registro?from=seo_manuales" class="seo-cta-primary">Empieza por tu Carta Descriptiva gratis</a>
+  <a href="/login?next=/elemento/3" class="seo-cta-secondary">Ya tengo cuenta</a>
+</header>
+
+<section class="seo-video">
+  <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/pertinentia_promo_poster.jpg') }}">
+    <source src="{{ url_for('static', filename='videos/pertinentia_promo.mp4') }}" type="video/mp4">
+    Tu navegador no soporta el video.
+  </video>
+</section>
+
+<section>
+  <h2>Manual del participante vs. manual del instructor</h2>
+  <p>Una de las confusiones más comunes en EC0301 y EC0217.01: presentar un solo manual con cambio de portada. El evaluador suele emitir dictamen de "todavía no competente" cuando ambos manuales son el mismo documento. Son piezas distintas, con propósito y audiencia distintos.</p>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+  <table>
+    <thead><tr><th>Característica</th><th>Manual del participante</th><th>Manual del instructor</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Audiencia</strong></td><td>Estudiante del curso</td><td>Otro instructor que replique el curso</td></tr>
+      <tr><td><strong>Propósito</strong></td><td>Aprender</td><td>Impartir</td></tr>
+      <tr><td><strong>Incluye ejercicios</strong></td><td>Sí, para resolver</td><td>Sí, con respuestas</td></tr>
+      <tr><td><strong>Tiempos por tema</strong></td><td>No</td><td>Sí, obligatorio</td></tr>
+      <tr><td><strong>Notas didácticas</strong></td><td>No</td><td>Sí, técnicas y advertencias</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Estructura del manual del participante</h2>
+  <ol>
+    <li>Portada con datos del curso y del participante.</li>
+    <li>Índice paginado.</li>
+    <li>Introducción y bienvenida.</li>
+    <li>Objetivo general y objetivos específicos.</li>
+    <li>Mapa de contenidos.</li>
+    <li>Desarrollo por unidad: teoría + ejemplos + ejercicios + autoevaluación.</li>
+    <li>Glosario de términos.</li>
+    <li>Bibliografía y referencias.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Estructura del manual del instructor</h2>
+  <ol>
+    <li>Portada y datos generales.</li>
+    <li>Carta descriptiva resumida.</li>
+    <li>Para cada unidad: tiempos sugeridos, técnica didáctica recomendada, materiales necesarios, anticipación de dudas frecuentes, respuestas a los ejercicios.</li>
+    <li>Lista de chequeo previa al curso.</li>
+    <li>Recomendaciones para el cierre y la evaluación.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Observaciones que el evaluador suele señalar</h2>
+  <ul>
+    <li>Entregar el mismo documento como "participante" e "instructor" cambiando solo la portada.</li>
+    <li>No incluir tiempos en el manual del instructor.</li>
+    <li>Usar imágenes sin atribución o con atribución incompleta.</li>
+    <li>Diseño descuidado (el evaluador también valora la profesionalidad del producto).</li>
+  </ul>
+</section>
+
+<section class="seo-why">
+  <h2>Por qué PertinentIA</h2>
+  <div class="seo-why-grid">
+    <div class="seo-why-card"><strong>La única IA especializada en metodología CONOCER en Latinoamérica</strong><p>No es ChatGPT con un prompt: es una IA entrenada con el protocolo exacto del estándar EC0301 y EC0217.01.</p></div>
+    <div class="seo-why-card"><strong>Eleva pedagógicamente cualquier tema</strong><p>Tú aportas la experiencia, PertinentIA construye el curso completo. Desde información elemental hasta la co-creación.</p></div>
+  </div>
+</section>
+
+<section class="seo-network-banner">
+  <strong>PertinentIA es la primera Red Profesional de Capacitación Certificada en México.</strong>
+  <p>Diseñada para Agentes Capacitadores Externos, instructores STPS internos, docentes SEP y profesionales del Diseño Instruccional.</p>
+</section>
+
+<section class="seo-cta-block">
+  <h2>Genera ambos manuales en minutos</h2>
+  <p>PertinentIA genera tu manual del participante y del instructor alineados a tu carta descriptiva, listos para integrar al portafolio EC0301 y EC0217.01.</p>
+  <a href="/registro?from=seo_manuales" class="seo-cta-primary">Empieza por tu Carta Descriptiva gratis</a>
+</section>
+</article>
+
+<style>
+.seo-landing{max-width:880px;margin:0 auto;padding:2rem 1.2rem;font-family:Inter,sans-serif;color:#1f2937;line-height:1.65;}
+.seo-hero{text-align:center;margin-bottom:1.4rem;padding:1.6rem 1rem;background:linear-gradient(135deg,#fff5f4,#fff);border-radius:14px;}
+.seo-badge{display:inline-block;background:#FA8072;color:#fff;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:700;letter-spacing:0.4px;}
+.seo-hero h1{font-size:1.7rem;font-weight:800;margin:0.8rem 0;line-height:1.25;color:#111827;}
+.seo-lede{font-size:1rem;color:#4b5563;max-width:720px;margin:0 auto 1.2rem;}
+.seo-cta-primary{display:inline-block;background:#FA8072;color:#fff;padding:0.85rem 1.6rem;border-radius:10px;font-weight:700;text-decoration:none;margin:0.4rem;box-shadow:0 4px 12px rgba(250,128,114,0.3);}
+.seo-cta-secondary{display:inline-block;color:#FA8072;padding:0.85rem 1.4rem;border:2px solid #FA8072;border-radius:10px;font-weight:600;text-decoration:none;margin:0.4rem;}
+.seo-video{text-align:center;margin:1rem 0 2rem;}
+.seo-video video{width:100%;max-width:720px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);background:#000;}
+.seo-landing section{margin:1.8rem 0;}
+.seo-landing h2{font-size:1.35rem;font-weight:700;color:#111827;margin-bottom:0.7rem;border-left:4px solid #FA8072;padding-left:0.7rem;}
+.seo-landing ol li,.seo-landing ul li{margin:0.4rem 0;}
+.seo-landing table{width:100%;border-collapse:collapse;font-size:0.9rem;margin:1rem 0;}
+.seo-landing thead tr{background:#1a1a2e;color:#fff;}
+.seo-landing th,.seo-landing td{padding:0.55rem;text-align:left;border-bottom:1px solid #e5e7eb;}
+.seo-landing th{text-align:center;}
+.seo-landing td:not(:first-child){text-align:center;}
+.seo-why{background:#f9fafb;border-radius:12px;padding:1.5rem;}
+.seo-why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:0.8rem;}
+.seo-why-card{background:#fff;padding:1rem;border-left:4px solid #FA8072;border-radius:8px;}
+.seo-why-card strong{color:#1a1a2e;}
+.seo-why-card p{margin:0.4rem 0 0;color:#4b5563;font-size:0.92rem;}
+.seo-network-banner{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:1.5rem;border-radius:12px;margin:2rem 0;text-align:center;border:2px solid #FA8072;}
+.seo-network-banner strong{font-size:1.1rem;display:block;margin-bottom:0.4rem;color:#FA8072;}
+.seo-network-banner p{margin:0;color:rgba(255,255,255,0.85);font-size:0.92rem;}
+.seo-cta-block{background:#1a1a2e;color:#fff;padding:2rem 1.5rem;border-radius:14px;text-align:center;margin-top:2rem;}
+.seo-cta-block h2{color:#fff;border:none;padding:0;}
+.seo-cta-block p{color:rgba(255,255,255,0.85);max-width:600px;margin:0.8rem auto 1.4rem;}
+@media (max-width:640px){.seo-hero h1{font-size:1.4rem;}.seo-lede{font-size:0.95rem;}}
+</style>
+{% endblock %}

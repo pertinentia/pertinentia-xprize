@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Pertinentia EC0301 y EC0217.01</title>
+    <meta name="description" content="Inicia sesión en PertinentIA para generar tu Carta Descriptiva, Instrumentos de Evaluación y Manuales alineados al EC0301 y EC0217.01 del CONOCER.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://app.pertinentia.com/login">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/login" class="nav-brand" style="text-decoration:none;">Pertinentia <span>EC0301</span></a>
+    </nav>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">Iniciar Sesión</h1>
+            <p class="auth-subtitle">Accede a tu Fábrica de Productos EC0301</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}" style="margin-bottom:1rem;">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" required placeholder="tu@correo.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" required placeholder="Tu contraseña" autocomplete="current-password">
+                        <button type="button" class="eye-toggle" onclick="toggleEye(this)" aria-label="Mostrar contraseña">&#128065;</button>
+                    </div>
+                </div>
+                <button type="submit" class="auth-btn">Iniciar Sesión</button>
+            </form>
+            <p class="auth-link">¿No tienes cuenta? <a href="/registro">Crear cuenta</a></p>
+            <p class="auth-link" style="margin-top:0.5rem;">
+                <a href="{{ url_for('forgot_password') }}">¿Olvidaste tu contraseña? Restablecer aquí</a>
+            </p>
+        </div>
+    </div>
+    <script>
+    function toggleEye(btn) {
+        var input = btn.previousElementSibling;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.innerHTML = '&#128064;';
+        } else {
+            input.type = 'password';
+            btn.innerHTML = '&#128065;';
+        }
+    }
+    </script>
+</body>
+</html>

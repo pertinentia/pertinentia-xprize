@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.dash-top { display: block; }
+.dash-ad-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; min-height: 220px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: relative; margin-top: 1.5rem; }
+.dash-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+.dash-metric { background: #fff; border-radius: 10px; border: 1px solid #e5e7eb; padding: 1.25rem 1rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: center; }
+.dash-metric .num { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.25rem; }
+.dash-metric .label { font-size: 0.75rem; color: #6b7280; }
+.dash-ad-track { display: flex; transition: transform 0.5s ease; width: {{ (ads|length) * 100 if ads else 100 }}%; height: 100%; }
+.dash-ad-slide { display: flex; align-items: stretch; text-decoration: none; color: #374151; box-sizing: border-box; min-height: 220px; overflow: hidden; border: 1px solid rgba(250,128,114,0.15); }
+.dash-ad-slide .ad-img-wrap { width: 60%; flex-shrink: 0; overflow: hidden; background: #f3f4f6; }
+.dash-ad-slide .ad-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dash-ad-slide .ad-text-wrap { width: 40%; min-width: 0; padding: 1rem 1.2rem; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; }
+.dash-ad-slide .ad-title { font-weight: 700; font-size: 1.05rem; color: #1f2937; margin-bottom: 0.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-ad-slide .ad-desc { font-size: 0.82rem; color: #6b7280; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.dash-ad-badge { display: inline-block; font-size: 0.65rem; background: rgba(0,0,0,0.08); padding: 2px 10px; border-radius: 10px; color: #6b7280; margin-top: 0.6rem; align-self: flex-start; }
+.dash-ad-dots { position: absolute; bottom: 8px; right: 12px; display: flex; gap: 5px; z-index: 2; }
+.dash-ad-dots span { width: 8px; height: 8px; border-radius: 50%; cursor: pointer; transition: background 0.3s; }
+.dash-page-wrap { display: flex; flex-direction: column; gap: 1rem; }
+@keyframes pulse-cta-home {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250,128,114,0.55); }
+    50% { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(250,128,114,0); }
+}
+.pulse-cta { animation: pulse-cta-home 1.6s ease-in-out infinite; position: relative; }
+@keyframes pulse-microcopy {
+    0%, 100% { opacity: 0.65; transform: translateX(0); }
+    50% { opacity: 1; transform: translateX(-3px); }
+}
+.pulse-microcopy { font-size: 0.82rem; color: #FA8072; font-weight: 700; animation: pulse-microcopy 1.6s ease-in-out infinite; white-space: nowrap; }
+.value-band { background: linear-gradient(135deg, #13283f 0%, #1d3a5c 100%); border-radius: 14px; padding: 1.5rem 1.75rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap; box-shadow: 0 4px 16px rgba(19,40,63,0.18); }
+.value-band-title { color: #fff; font-size: 1.4rem; font-weight: 800; margin: 0 0 0.35rem; line-height: 1.2; }
+.value-band-sub { color: rgba(255,255,255,0.85); font-size: 0.92rem; margin: 0; line-height: 1.45; max-width: 620px; }
+.value-band-btn { background: #FA8072; color: #fff; font-weight: 700; font-size: 0.95rem; padding: 0.8rem 1.6rem; border-radius: 10px; text-decoration: none; white-space: nowrap; transition: background 0.2s, transform 0.2s; flex-shrink: 0; }
+.value-band-btn:hover { background: #e9685a; transform: translateY(-1px); }
+@media (max-width: 768px) {
+    .dash-metrics { grid-template-columns: 1fr 1fr; }
+    .value-band { padding: 1.25rem 1.2rem; flex-direction: column; align-items: flex-start; }
+    .value-band-title { font-size: 1.2rem; }
+    .value-band-sub { font-size: 0.88rem; }
+    .value-band-btn { width: 100%; text-align: center; box-sizing: border-box; }
+    .dash-ad-card { min-height: auto; margin-top: 1.25rem; }
+    .dash-ad-slide { flex-direction: column; min-height: auto; }
+    .dash-ad-slide .ad-img-wrap { width: 100%; height: 180px; }
+    .dash-ad-slide .ad-text-wrap { width: 100%; padding: 0.75rem 1rem; max-height: 90px; overflow: hidden; }
+    .dash-ad-slide .ad-desc { -webkit-line-clamp: 2; }
+}
+</style>
+
+<div class="dash-page-wrap">
+<div class="value-band">
+    <div class="value-band-text">
+        <h2 class="value-band-title">Dise&ntilde;a cursos profesionales en minutos</h2>
+        <p class="value-band-sub">Genera cartas descriptivas, instrumentos de evaluaci&oacute;n y manuales completos con ayuda de IA.</p>
+    </div>
+    <a href="/elemento/1" class="value-band-btn">Crear mi primer curso &rarr;</a>
+</div>
+<div class="dash-top">
+    <div class="dash-metrics">
+        <div class="dash-metric">
+            <div class="num" style="font-size:0.85rem;">&#9889;</div>
+            <div class="label">F&aacute;brica de Productos Multi-materia</div>
+        </div>
+        <div class="dash-metric">
+            <div class="num" style="font-size:0.9rem;"><span class="status-dot"></span>Biblioteca de Conocimiento</div>
+            <div class="label">Metodolog&iacute;as, capacitaci&oacute;n y recursos especializados.</div>
+        </div>
+        {% if current_user.is_authenticated and generated_count > 0 %}
+        <a href="/documentos" class="dash-metric" style="text-decoration:none;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#FA8072'" onmouseout="this.style.borderColor='#e5e7eb'">
+            <div class="num">{{ generated_count }}</div>
+            <div class="label">Productos Generados</div>
+            <div style="font-size:0.65rem;color:#FA8072;font-weight:600;margin-top:0.2rem;">Ver documentos &rarr;</div>
+        </a>
+        {% else %}
+        <div class="dash-metric">
+            <div class="num">{{ generated_count }}</div>
+            <div class="label">Productos Generados</div>
+        </div>
+        {% endif %}
+        <div class="dash-metric">
+            {% if current_user.is_authenticated %}
+            <div class="num tier-badge tier-{{ current_user.tier | lower }}">{{ current_user.tier }}</div>
+            {% else %}
+            <div class="num tier-badge tier-free">FREE</div>
+            {% endif %}
+            <div class="label">Tu Plan Actual</div>
+        </div>
+    </div>
+</div>
+
+<div class="card dash-elemento-card" style="padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">Dise&ntilde;a tu Curso Completo <span class="badge">Elemento 1</span></h2>
+    <p style="margin-bottom:0.75rem;">Genera objetivos, temario, t&eacute;cnicas instruccionales, actividades, materiales, tiempos y estructura profesional para tu curso.</p>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <a href="/elemento/1" class="gen-btn{{ ' pulse-cta' if (not current_user.is_authenticated or current_user.tier == 'FREE') }}">Iniciar &rarr;</a>
+        {% if not current_user.is_authenticated or current_user.tier == 'FREE' %}
+        <span class="pulse-microcopy">&#128072; Empieza aqu&iacute; gratis &mdash; tu primera Carta Descriptiva sin tarjeta</span>
+        {% endif %}
+        {% if current_user.is_authenticated and (current_user.is_pro or current_user.alacarte_e1 > 0) %}
+        <select class="template-style-select" data-elemento="1" style="padding:0.4rem 0.7rem;border-radius:8px;border:1px solid #d1d5db;font-size:0.82rem;color:#374151;background:#fff;cursor:pointer;">
+            <option value="corporativo">&#127970; Corporativo</option>
+            <option value="academico">&#127891; Acad&eacute;mico</option>
+            <option value="minimalista">&#9898; Minimalista</option>
+        </select>
+        {% elif current_user.is_authenticated and not current_user.is_pro %}
+        <span style="font-size:0.75rem;color:#9ca3af;" title="Disponible en planes PRO, PREMIUM o A la Carta">&#128274; Plantillas PRO</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card dash-elemento-card" style="padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">Eval&uacute;a el Aprendizaje <span class="badge">Elemento 2</span></h2>
+    <p style="margin-bottom:0.75rem;">Genera evaluaciones diagn&oacute;sticas, formativas, finales, encuestas de satisfacci&oacute;n y hojas de respuesta listas para usar.</p>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <a href="/elemento/2" class="gen-btn">Iniciar &rarr;</a>
+        {% if current_user.is_authenticated and (current_user.is_pro or current_user.alacarte_e2 > 0) %}
+        <select class="template-style-select" data-elemento="2" style="padding:0.4rem 0.7rem;border-radius:8px;border:1px solid #d1d5db;font-size:0.82rem;color:#374151;background:#fff;cursor:pointer;">
+            <option value="corporativo">&#127970; Corporativo</option>
+            <option value="academico">&#127891; Acad&eacute;mico</option>
+            <option value="minimalista">&#9898; Minimalista</option>
+        </select>
+        {% elif current_user.is_authenticated and not current_user.is_pro %}
+        <span style="font-size:0.75rem;color:#9ca3af;" title="Disponible en planes PRO, PREMIUM o A la Carta">&#128274; Plantillas PRO</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card dash-elemento-card" style="padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">Crea Materiales del Curso <span class="badge">Elemento 3</span></h2>
+    <p style="margin-bottom:0.75rem;">Genera manuales del participante y del instructor listos para impartir capacitaci&oacute;n.</p>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <a href="/elemento/3" class="gen-btn">Iniciar &rarr;</a>
+        {% if current_user.is_authenticated and (current_user.is_pro or current_user.alacarte_e3 > 0) %}
+        <select class="template-style-select" data-elemento="3" style="padding:0.4rem 0.7rem;border-radius:8px;border:1px solid #d1d5db;font-size:0.82rem;color:#374151;background:#fff;cursor:pointer;">
+            <option value="corporativo">&#127970; Corporativo</option>
+            <option value="academico">&#127891; Acad&eacute;mico</option>
+            <option value="minimalista">&#9898; Minimalista</option>
+        </select>
+        {% elif current_user.is_authenticated and not current_user.is_pro %}
+        <span style="font-size:0.75rem;color:#9ca3af;" title="Disponible en planes PRO, PREMIUM o A la Carta">&#128274; Plantillas PRO</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card dash-elemento-card" style="padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">Auto-diagn&oacute;stico de Cumplimiento <span class="badge">Paso 4</span></h2>
+    <p style="margin-bottom:0.75rem;">Verifica que tus productos cumplen los 145 criterios del EC0301 antes de la evaluaci&oacute;n formal.</p>
+    <a href="/elemento/4" class="gen-btn">Iniciar &rarr;</a>
+</div>
+
+{% if current_user.is_authenticated and current_user.is_premium %}
+<div class="card dash-elemento-card" style="border-left:4px solid #22c55e;padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">&#9989; Licencia Activa <span class="badge" style="background:#22c55e;">Paso 5</span></h2>
+    <p style="margin-bottom:0.75rem;">Tu Centro Evaluador Virtual est&aacute; listo. Gestiona candidatos y evaluaciones EC0301.</p>
+    <a href="/dashboard-ce" class="gen-btn" style="background:#7c3aed;">Gestionar mis Evaluaciones &rarr;</a>
+</div>
+{% else %}
+<div class="card dash-elemento-card" style="padding:1rem;">
+    <h2 style="margin-bottom:0.5rem;">Licencia Centro Evaluador IA <span class="badge" style="background:#22c55e;">Paso 5</span></h2>
+    <p style="margin-bottom:0.75rem;">Potencia tu Centro Evaluador con dise&ntilde;os de cursos y evaluaciones ilimitadas.</p>
+    <a href="/certificado" class="gen-btn">Ver Licencias &rarr;</a>
+</div>
+{% endif %}
+
+<div class="card dash-elemento-card" style="padding:1rem;border-left:4px solid #FA8072;background:linear-gradient(135deg,#fff,#fff5f3);">
+    <h2 style="margin-bottom:0.5rem;color:#1a1a2e;">&iquest;De verdad eres muy buen instructor?</h2>
+    <p style="margin-bottom:0.75rem;color:#374151;">Sube la transcripci&oacute;n de tu clase y obt&eacute;n un <strong>dictamen IA gratuito</strong> contra los reactivos del EC0217.01 (Encuadre, Desarrollo, Cierre). Desbloquea el desglose detallado por $349.</p>
+    <a href="/evaluar-mi-clase" class="gen-btn" style="background:#FA8072;">Quiero evaluar la transcripci&oacute;n de mi clase &rarr;</a>
+</div>
+
+{% if ads and ads|length > 0 %}
+<div class="dash-ad-card" id="dash-ad-slot">
+    <div style="position:relative;width:100%;height:100%;min-height:220px;overflow:hidden;">
+        <div class="dash-ad-track" id="dash-ad-track">
+            {% for ad in ads %}
+            <a href="/api/ads/click/{{ ad.id }}" target="_blank" rel="noopener" class="dash-ad-slide"
+               style="flex:0 0 {{ (100 / ads|length)|round(2) }}%;background:linear-gradient(135deg, rgba(250,128,114,0.12), rgba(250,128,114,0.04));">
+                {% if ad.image_url %}
+                <div class="ad-img-wrap">
+                    <img src="{{ ad.image_url }}" alt="{{ ad.title }}">
+                </div>
+                {% endif %}
+                <div class="ad-text-wrap">
+                    <div class="ad-title">{{ ad.title }}</div>
+                    {% if ad.description %}
+                    <div class="ad-desc">{{ ad.description }}</div>
+                    {% endif %}
+                    <span class="dash-ad-badge">Publicidad</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% if ads|length > 1 %}
+        <div class="dash-ad-dots" id="dash-ad-dots">
+            {% for ad in ads %}
+            <span style="background:{{ '#FA8072' if loop.first else 'rgba(0,0,0,0.15)' }};" data-idx="{{ loop.index0 }}"></span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+</div>
+
+{% if ads and ads|length > 1 %}
+<script>
+(function(){
+    var track = document.getElementById('dash-ad-track');
+    var dots = document.getElementById('dash-ad-dots');
+    if (!track || !dots) return;
+    var total = {{ ads|length }};
+    var cur = 0;
+    var allDots = dots.querySelectorAll('span');
+
+    fetch('/api/ads/impression/{{ ads[0].id }}', {method:'POST'}).catch(function(){});
+    var sent = { '{{ ads[0].id }}': true };
+    var adIds = [{% for ad in ads %}'{{ ad.id }}'{% if not loop.last %},{% endif %}{% endfor %}];
+
+    function go(idx) {
+        cur = idx % total;
+        track.style.transform = 'translateX(-' + (cur * (100 / total)) + '%)';
+        allDots.forEach(function(d, i) {
+            d.style.background = i === cur ? '#FA8072' : 'rgba(0,0,0,0.15)';
+        });
+        if (!sent[adIds[cur]]) {
+            fetch('/api/ads/impression/' + adIds[cur], {method:'POST'}).catch(function(){});
+            sent[adIds[cur]] = true;
+        }
+    }
+
+    allDots.forEach(function(d) {
+        d.addEventListener('click', function(e) {
+            e.preventDefault();
+            go(parseInt(d.getAttribute('data-idx')));
+        });
+    });
+
+    setInterval(function() { go(cur + 1); }, 5000);
+})();
+</script>
+{% elif ads and ads|length == 1 %}
+<script>
+fetch('/api/ads/impression/{{ ads[0].id }}', {method:'POST'}).catch(function(){});
+</script>
+{% endif %}
+<script>
+(function(){
+    var selects = document.querySelectorAll('.template-style-select');
+    selects.forEach(function(sel){
+        var saved = localStorage.getItem('pertinentia_template_style');
+        if (saved) sel.value = saved;
+        sel.addEventListener('change', function(){
+            localStorage.setItem('pertinentia_template_style', sel.value);
+            selects.forEach(function(s){ s.value = sel.value; });
+        });
+    });
+})();
+</script>
+{% endblock %}

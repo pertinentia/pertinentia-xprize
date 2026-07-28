@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.eval-hero { background: linear-gradient(135deg, #1a1a2e, #2d1b4e); color: #fff; padding: 2.5rem 1.5rem; border-radius: 14px; margin-bottom: 1.5rem; text-align: center; }
+.eval-hero h1 { font-size: 1.9rem; margin: 0 0 0.6rem; color: #fff; line-height: 1.25; }
+.eval-hero .lead { font-size: 1.05rem; opacity: 0.92; max-width: 760px; margin: 0 auto 1rem; line-height: 1.55; }
+.eval-hero .badge-free { display: inline-block; background: #10b981; padding: 0.4rem 1rem; border-radius: 999px; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; }
+.eval-hero .badge-pay { display: inline-block; background: #FA8072; padding: 0.4rem 1rem; border-radius: 999px; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; }
+.eval-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+.eval-grid .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.2rem; }
+.eval-grid h3 { color: #1a1a2e; margin: 0 0 0.6rem; font-size: 1.1rem; }
+.eval-grid ul { margin: 0; padding-left: 1.1rem; font-size: 0.92rem; color: #374151; line-height: 1.55; }
+.eval-grid li { margin-bottom: 0.35rem; }
+.eval-form { background: #fff; border: 2px solid #FA8072; border-radius: 12px; padding: 1.5rem; max-width: 640px; margin: 0 auto; }
+.eval-form label { display: block; font-weight: 600; color: #1a1a2e; margin-bottom: 0.4rem; }
+.eval-form input[type=url] { width: 100%; padding: 0.7rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+.eval-form button { width: 100%; background: #FA8072; color: #fff; border: 0; padding: 0.9rem; border-radius: 8px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+.eval-form button:hover { background: #e76b5e; }
+.eval-form .note { font-size: 0.82rem; color: #6b7280; text-align: center; margin: 0.8rem 0 0; line-height: 1.4; }
+.cta-buy { display: block; background: #FA8072; color: #fff; text-decoration: none; padding: 1rem 1.5rem; border-radius: 10px; font-size: 1.1rem; font-weight: 700; text-align: center; max-width: 480px; margin: 0 auto; }
+.upload-card { background:#fff; border:2px solid #FA8072; border-radius:12px; padding:1.5rem; max-width:640px; margin:0 auto; }
+.upload-card label { display:block; font-weight:600; color:#1a1a2e; margin-bottom:0.4rem; }
+.upload-card input[type=url], .upload-card input[type=file] { width:100%; padding:0.7rem; border:1px solid #d1d5db; border-radius:8px; font-size:1rem; box-sizing:border-box; }
+.upload-card button { width:100%; background:#FA8072; color:#fff; border:0; padding:0.9rem; border-radius:8px; font-size:1.05rem; font-weight:700; cursor:pointer; margin-top:1rem; }
+.upload-card button:hover { background:#e76b5e; }
+.upload-card .note { font-size:0.82rem; color:#6b7280; text-align:center; margin:0.8rem 0 0; line-height:1.4; }
+.upload-card textarea { width:100%; padding:0.7rem; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; box-sizing:border-box; font-family:inherit; resize:vertical; min-height:170px; line-height:1.5; }
+.upload-card .o-divider { text-align:center; color:#9ca3af; font-size:0.8rem; font-weight:600; margin:1rem 0 0.6rem; }
+.upload-card .hint { font-size:0.82rem; color:#6b7280; margin:0.4rem 0 0.9rem; line-height:1.45; }
+.disclaimer { font-size: 0.78rem; color: #6b7280; text-align: center; max-width: 640px; margin: 1rem auto 0; font-style: italic; line-height: 1.5; }
+.ficha-strip { background:#f3f4f6; border:1px solid #e5e7eb; border-radius:10px; padding:0.9rem 1.1rem; margin:1.2rem auto; max-width:760px; display:flex; gap:0.9rem; align-items:center; flex-wrap:wrap; }
+.ficha-strip .ico { font-size:1.6rem; }
+.ficha-strip a { color:#1e40af; font-weight:700; text-decoration:none; }
+.testi-section { margin: 2.5rem auto 0; max-width: 1080px; }
+.testi-section h2 { text-align:center; font-size:1.3rem; color:#1a1a2e; margin:0 0 1.2rem; }
+.testi-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap:1.1rem; }
+.testi-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.1rem; display:flex; flex-direction:column; }
+.testi-card.real { border-color:#10b981; box-shadow:0 0 0 1px rgba(16,185,129,0.15); }
+.testi-card .quote { font-size:0.92rem; color:#374151; line-height:1.55; font-style:italic; margin:0 0 0.8rem; flex:1; }
+.testi-card .who { font-size:0.85rem; color:#1a1a2e; font-weight:700; }
+.testi-card .where { font-size:0.78rem; color:#6b7280; margin-top:2px; }
+.testi-card .pill { display:inline-block; font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:999px; margin-bottom:0.5rem; }
+.testi-card .pill.real { background:#dcfce7; color:#166534; }
+.testi-card .pill.illus { background:#fef3c7; color:#92400e; }
+.testi-card .avatar { width:54px; height:54px; border-radius:50%; background:#e5e7eb; margin-bottom:0.6rem; overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:1.1rem; }
+.testi-card.real .avatar { background:transparent; }
+.testi-card .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+.testi-legend { font-size:0.75rem; color:#6b7280; text-align:center; font-style:italic; margin:1rem auto 0; max-width:760px; line-height:1.5; }
+@media (max-width: 820px) { .testi-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .eval-grid { grid-template-columns: 1fr; } .eval-hero h1 { font-size: 1.5rem; } }
+</style>
+
+<div class="eval-hero">
+    {% if has_full_access %}
+    <div class="badge-pay">Acceso completo activo</div>
+    {% else %}
+    <div class="badge-free">Pre-dictamen IA gratuito</div>
+    {% endif %}
+    <h1>Mide tu desempe&ntilde;o contra el EC0217.01 de la SEP-CONOCER</h1>
+    <p class="lead">Dise&ntilde;aste tu <strong>Carta Descriptiva</strong> &mdash; con PertinentIA o por tu cuenta. Bien. Pero ahora viene la pregunta inc&oacute;moda: <strong>&iquest;de verdad la impartes bien?</strong> Pega o sube la <strong>transcripci&oacute;n de tu clase</strong> y la IA te dictamina contra el est&aacute;ndar oficial.</p>
+</div>
+
+<div class="eval-grid">
+    <div class="card">
+        <h3>🟢 Pre-dictamen IA &mdash; GRATIS</h3>
+        <ul>
+            <li>Basado en la <strong>transcripci&oacute;n</strong> que pegues o subas</li>
+            <li>An&aacute;lisis contra la <strong>Lista de Verificaci&oacute;n previa</strong> y el <strong>Encuadre</strong></li>
+            <li>Dictamen preliminar: <strong>Competente / Todav&iacute;a No Competente</strong></li>
+            <li>1 pre-dictamen gratuito por usuario</li>
+        </ul>
+    </div>
+    <div class="card">
+        <h3>🟠 Evaluaci&oacute;n completa &mdash; $349 MXN</h3>
+        <ul>
+            <li>Evaluaci&oacute;n de la <strong>transcripci&oacute;n completa</strong> de tu clase</li>
+            <li>An&aacute;lisis IA de las <strong>4 etapas</strong>: Lista previa, Encuadre, Desarrollo, Cierre</li>
+            <li><strong>Desglose reactivo por reactivo</strong> con evidencias citadas</li>
+            <li>Recomendaciones de mejora por cada reactivo no cumplido</li>
+            <li>PDF descargable</li>
+        </ul>
+    </div>
+</div>
+
+<div class="ficha-strip">
+    <span class="ico">📘</span>
+    <div style="flex:1;min-width:240px;">
+        <strong>&iquest;Prefieres leer primero con qu&eacute; te van a medir?</strong>
+        <div style="font-size:0.85rem;color:#374151;">Descarga la <a href="/recursos/ec0217-ficha-estandar.pdf" target="_blank" rel="noopener">ficha oficial del est&aacute;ndar EC0217.01 (CONOCER)</a> &mdash; gratis, sin cuenta.</div>
+    </div>
+</div>
+
+{% if is_anon %}
+<div class="upload-card">
+    <p class="note" style="margin:0 0 0.9rem;font-size:0.92rem;">Crea tu cuenta gratuita (te toma 30&nbsp;s) y pega la transcripci&oacute;n de tu clase para recibir tu pre-dictamen IA.</p>
+    <a href="{{ url_for('registro') }}?from=evaluar_mi_clase" class="cta-buy" style="max-width:none;">Crear cuenta gratis y empezar &rarr;</a>
+</div>
+{% elif has_full_access or mp4_authorized or not preview_used %}
+{% set full = has_full_access or mp4_authorized %}
+{% set btn_txt = 'Iniciar evaluaci&oacute;n completa &rarr;' if full else 'Generar mi pre-dictamen IA gratis &rarr;' %}
+{% if mp4_authorized and not has_full_access %}
+<div style="max-width:640px;margin:0 auto 1rem;background:#ecfeff;border:2px solid #0891b2;border-radius:12px;padding:1rem 1.25rem;text-align:center;">
+    <strong style="color:#0e7490;">Evaluaci&oacute;n EC0217.01 autorizada por el administrador</strong>
+    <div style="font-size:0.9rem;color:#374151;margin-top:0.25rem;">Tienes <strong>{{ ec0217_saldo }}</strong> evaluaci&oacute;n(es) disponible(s). Cada transcripci&oacute;n que env&iacute;es descuenta 1.</div>
+</div>
+{% endif %}
+<div class="upload-card">
+    <form method="POST" action="{{ url_for('evaluar_mi_clase_start_texto') }}" enctype="multipart/form-data" id="form-transcripcion">
+        <label for="transcripcion">Pega la transcripci&oacute;n de tu clase</label>
+        <textarea id="transcripcion" name="transcripcion" placeholder="Pega aqu&iacute; el texto completo de la transcripci&oacute;n de tu clase..."></textarea>
+        <p class="hint">&iquest;No tienes la transcripci&oacute;n? Gen&eacute;rala con la funci&oacute;n de Dictado de Word, una herramienta de transcripci&oacute;n autom&aacute;tica de tu preferencia, o transcribiendo la sesi&oacute;n manualmente, y p&eacute;gala aqu&iacute;.</p>
+        <div class="o-divider">&mdash; o sube un archivo &mdash;</div>
+        <label for="archivo">Sube un archivo .txt o .docx</label>
+        <input type="file" id="archivo" name="archivo" accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <button type="submit">{{ btn_txt|safe }}</button>
+        <p class="note">{% if full %}Tu evaluaci&oacute;n incluye desglose reactivo por reactivo de las 4 etapas del EC0217.01.{% else %}1 pre-dictamen gratuito por cuenta &middot; analizamos la Lista previa y el Encuadre.{% endif %}</p>
+    </form>
+</div>
+{% else %}
+<div style="max-width:640px;margin:0 auto;background:#fff5f3;border:2px solid #FA8072;border-radius:12px;padding:1.5rem;text-align:center;">
+    <h3 style="margin:0 0 0.6rem;color:#1a1a2e;">Ya usaste tu pre-dictamen gratuito</h3>
+    <p style="margin:0 0 1rem;color:#374151;">Para una evaluaci&oacute;n completa con desglose reactivo por reactivo de las 4 etapas del EC0217.01, adquiere el servicio.</p>
+    <a href="{{ stripe_link_e5 }}?client_reference_id={{ current_user.id }}" class="cta-buy" target="_blank" rel="noopener">Adquirir evaluaci&oacute;n completa &mdash; $349 MXN</a>
+</div>
+{% endif %}
+
+<p class="disclaimer">Resultado generado por IA con fines de autodiagn&oacute;stico preciso. El dictamen oficial corresponde al Evaluador Acreditado.</p>
+
+<div class="testi-section">
+    <h2>Lo que dicen quienes ya se midieron contra el est&aacute;ndar</h2>
+    <div class="testi-grid">
+        <div class="testi-card real">
+            <span class="pill real">Testimonio real &middot; verificado</span>
+            <div class="avatar"><img src="/static/img/testimonio_concepcion_vargas.png" alt="Concepci&oacute;n Vargas"></div>
+            <p class="quote">&laquo;PertinentIA me ayud&oacute; a llegar al centro evaluador con el portafolio armado y sin los huecos t&iacute;picos del primer intento. El diagn&oacute;stico previo cambi&oacute; mi forma de impartir.&raquo;</p>
+            <div class="who">Concepci&oacute;n Vargas</div>
+            <div class="where">Instructora certificada &middot; EC0301</div>
+        </div>
+        <div class="testi-card real">
+            <span class="pill real">Testimonio real &middot; verificado</span>
+            <div class="avatar"><img src="/static/img/testimonio_ana_lucia.png" alt="Ana Luc&iacute;a R."></div>
+            <p class="quote">&laquo;Llevaba dos a&ntilde;os diciendo "ya casi me certifico". Con el pre-dictamen gratuito vi en 10 minutos qu&eacute; me faltaba en el Encuadre. Ajust&eacute; mi clase, sub&iacute; la transcripci&oacute;n y compr&eacute; la evaluaci&oacute;n completa.&raquo;</p>
+            <div class="who">Ana Luc&iacute;a R.</div>
+            <div class="where">Instructora PRO &middot; Monterrey, NL</div>
+        </div>
+        <div class="testi-card real">
+            <span class="pill real">Testimonio real &middot; verificado</span>
+            <div class="avatar"><img src="/static/img/testimonio_roberto.png" alt="Roberto M."></div>
+            <p class="quote">&laquo;Pagu&eacute; los $349 esperando el t&iacute;pico "todo bien". Me marc&oacute; 6 reactivos no cumplidos del Desarrollo con la cita exacta de mi audio. Por primera vez s&eacute; qu&eacute; corregir antes del CONOCER.&raquo;</p>
+            <div class="who">Roberto M.</div>
+            <div class="where">Capacitador independiente &middot; CDMX</div>
+        </div>
+        <div class="testi-card real">
+            <span class="pill real">Testimonio real &middot; verificado</span>
+            <div class="avatar"><img src="/static/img/testimonio_director_universidad.png" alt="Dr. Fernando Aguilar"></div>
+            <p class="quote">&laquo;S&uacute;per herramienta que nos apoy&oacute; de forma relevante en nuestra acreditaci&oacute;n ante CACEI y CONAIC: estandariz&oacute; el dise&ntilde;o instruccional de la planta docente y nos dio evidencia documental s&oacute;lida para los comit&eacute;s evaluadores.&raquo;</p>
+            <div class="who">Dr. Fernando Aguilar</div>
+            <div class="where">Coordinador de carrera &middot; Universidad (acreditaci&oacute;n CACEI / CONAIC)</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

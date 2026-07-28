@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Costos Centro Evaluador IA — Admin Pertinentia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#f9fafb; margin:0; padding:1.5rem; color:#111827; }
+  h1 { margin:0 0 0.3rem 0; font-size:1.5rem; }
+  .sub { color:#6b7280; font-size:0.85rem; margin-bottom:1.2rem; }
+  .filtros { background:#fff; padding:0.8rem 1rem; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:1rem; display:flex; gap:0.8rem; align-items:end; flex-wrap:wrap; }
+  .filtros label { display:flex; flex-direction:column; font-size:0.78rem; color:#374151; font-weight:600; }
+  .filtros input { padding:0.4rem 0.6rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.85rem; margin-top:0.2rem; }
+  .filtros button { padding:0.5rem 1rem; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.85rem; }
+  .b-prim { background:#7c3aed; color:#fff; }
+  .b-sec { background:#fff; color:#7c3aed; border:1px solid #7c3aed !important; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.7rem; margin-bottom:1.2rem; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:0.9rem; }
+  .card .label { font-size:0.72rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em; font-weight:600; }
+  .card .val { font-size:1.5rem; font-weight:700; color:#111827; margin-top:0.2rem; }
+  .card .sub2 { font-size:0.72rem; color:#9ca3af; margin-top:0.2rem; }
+  .card.acc { border-left:4px solid #7c3aed; }
+  .card.acc-blue { border-left:4px solid #2563eb; }
+  .card.acc-purple { border-left:4px solid #9333ea; }
+  .card.acc-green { border-left:4px solid #16a34a; }
+  .panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem; }
+  .panel h2 { margin:0 0 0.7rem 0; font-size:1rem; color:#1f2937; }
+  table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+  th, td { padding:0.5rem 0.6rem; text-align:left; border-bottom:1px solid #f3f4f6; }
+  th { background:#f9fafb; font-weight:600; color:#374151; font-size:0.76rem; text-transform:uppercase; letter-spacing:0.03em; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:600; }
+  .b301 { background:#ddd6fe; color:#5b21b6; }
+  .b217 { background:#dbeafe; color:#1e40af; }
+  #loader { padding:2rem; text-align:center; color:#6b7280; }
+  .err { background:#fef2f2; color:#991b1b; padding:0.8rem; border-radius:8px; border:1px solid #fecaca; }
+  a.back { color:#7c3aed; font-size:0.85rem; text-decoration:none; }
+</style>
+</head>
+<body>
+<a href="/admin-crm" class="back">← Volver al CRM</a>
+<h1 style="margin-top:0.5rem;">💸 Costos Centro Evaluador IA</h1>
+<div class="sub">Auditoría GPT-5.2 + Whisper (transcripción) + Dictamen GPT-5.2, consolidado EC0301 y EC0217.01.</div>
+
+<div class="filtros">
+  <label>Desde<input type="date" id="f_desde"></label>
+  <label>Hasta<input type="date" id="f_hasta"></label>
+  <button class="b-prim" onclick="cargar()">Aplicar</button>
+  <button class="b-sec" onclick="document.getElementById('f_desde').value='';document.getElementById('f_hasta').value='';cargar()">Limpiar</button>
+  <button class="b-sec" onclick="exportarCSV()">📥 Export CSV</button>
+</div>
+
+<div id="loader">Cargando…</div>
+<div id="contenido" style="display:none;">
+  <div class="cards" id="kpis"></div>
+  <div class="panel">
+    <h2>Desglose por estándar</h2>
+    <table>
+      <thead><tr><th>Estándar</th><th class="num">Evaluaciones</th><th class="num">Dictaminadas</th><th class="num">Auditoría MXN</th><th class="num">Video MXN</th><th class="num">Dictamen MXN</th><th class="num">Tokens (P+C)</th><th class="num">Min. Video</th></tr></thead>
+      <tbody id="tbl_estandar"></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Por evaluador (top consumidores)</h2>
+    <table>
+      <thead><tr><th>Evaluador</th><th class="num">Evaluaciones</th><th class="num">Dictamen.</th><th class="num">Auditoría MXN</th><th class="num">Video MXN</th><th class="num">Dictamen MXN</th><th class="num">Total MXN</th><th class="num">Min. Video</th></tr></thead>
+      <tbody id="tbl_usuarios"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function n(v,d){d=d===undefined?2:d;return (Number(v)||0).toFixed(d);}
+function int(v){return Math.round(Number(v)||0).toLocaleString('es-MX');}
+function mins(s){return Math.round((Number(s)||0)/60);}
+
+async function cargar(){
+  document.getElementById('loader').style.display='block';
+  document.getElementById('contenido').style.display='none';
+  var d=document.getElementById('f_desde').value;
+  var h=document.getElementById('f_hasta').value;
+  var qs=[]; if(d)qs.push('desde='+d); if(h)qs.push('hasta='+h);
+  try{
+    var r=await fetch('/api/admin/ce/costos'+(qs.length?'?'+qs.join('&'):''));
+    var j=await r.json();
+    if(!r.ok){document.getElementById('loader').innerHTML='<div class="err">'+esc(j.error||'Error')+'</div>';return;}
+    render(j);
+  }catch(e){document.getElementById('loader').innerHTML='<div class="err">Error de red</div>';}
+}
+
+function render(j){
+  var t=j.totales||{};
+  var kpis=document.getElementById('kpis');
+  kpis.innerHTML=
+    '<div class="card acc"><div class="label">Total acumulado MXN</div><div class="val">$'+n(t.total_mxn)+'</div><div class="sub2">≈ USD $'+n(t.total_usd,2)+'</div></div>'+
+    '<div class="card acc-purple"><div class="label">Auditoría IA</div><div class="val">$'+n(t.auditoria_mxn)+'</div><div class="sub2">GPT-5.2 conformación</div></div>'+
+    '<div class="card acc-blue"><div class="label">Video / Whisper</div><div class="val">$'+n(t.video_mxn)+'</div><div class="sub2">'+mins(t.video_segundos)+' min transcritos</div></div>'+
+    '<div class="card acc-green"><div class="label">Dictamen IA</div><div class="val">$'+n(t.dictamen_mxn)+'</div><div class="sub2">'+int(t.dictaminadas)+' emitidos</div></div>'+
+    '<div class="card"><div class="label">Evaluaciones</div><div class="val">'+int(t.evaluaciones)+'</div><div class="sub2">'+int(t.usuarios_unicos)+' evaluadores</div></div>'+
+    '<div class="card"><div class="label">Tokens GPT (P+C)</div><div class="val">'+int((t.tokens_prompt||0)+(t.tokens_completion||0))+'</div><div class="sub2">'+int(t.tokens_prompt)+' in / '+int(t.tokens_completion)+' out</div></div>';
+
+  var pe=j.por_estandar||{};
+  var ord=['EC0301','EC0217.01'];
+  document.getElementById('tbl_estandar').innerHTML=ord.map(function(k){
+    var e=pe[k]||{};
+    var cls=k==='EC0301'?'b301':'b217';
+    return '<tr><td><span class="badge '+cls+'">'+esc(k)+'</span></td>'+
+      '<td class="num">'+int(e.evaluaciones)+'</td>'+
+      '<td class="num">'+int(e.dictaminadas)+'</td>'+
+      '<td class="num">$'+n(e.auditoria_mxn)+'</td>'+
+      '<td class="num">$'+n(e.video_mxn)+'</td>'+
+      '<td class="num">$'+n(e.dictamen_mxn)+'</td>'+
+      '<td class="num">'+int((e.tokens_prompt||0)+(e.tokens_completion||0))+'</td>'+
+      '<td class="num">'+mins(e.video_segundos)+'</td></tr>';
+  }).join('');
+
+  var us=j.por_usuario||[];
+  document.getElementById('tbl_usuarios').innerHTML=us.length?us.map(function(u){
+    return '<tr><td>'+esc(u.nombre||'(sin nombre)')+'<br><span style="color:#9ca3af;font-size:0.74rem;">'+esc(u.email)+'</span></td>'+
+      '<td class="num">'+int(u.evaluaciones)+'</td>'+
+      '<td class="num">'+int(u.dictaminadas)+'</td>'+
+      '<td class="num">$'+n(u.auditoria_mxn)+'</td>'+
+      '<td class="num">$'+n(u.video_mxn)+'</td>'+
+      '<td class="num">$'+n(u.dictamen_mxn)+'</td>'+
+      '<td class="num"><strong>$'+n(u.total_mxn)+'</strong></td>'+
+      '<td class="num">'+mins(u.video_segundos)+'</td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:1.2rem;">Sin datos en el rango</td></tr>';
+
+  document.getElementById('loader').style.display='none';
+  document.getElementById('contenido').style.display='block';
+}
+
+function exportarCSV(){
+  var d=document.getElementById('f_desde').value;
+  var h=document.getElementById('f_hasta').value;
+  var qs=[]; if(d)qs.push('desde='+d); if(h)qs.push('hasta='+h);
+  window.location.href='/api/admin/ce/costos.csv'+(qs.length?'?'+qs.join('&'):'');
+}
+
+cargar();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}{{ title }} - PertinentIA EC0301 y EC0217.01{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}PertinentIA: genera con IA tu Carta Descriptiva, Instrumentos de Evaluación, Manuales y Auto-diagnóstico alineados a los estándares EC0301 y EC0217.01 del CONOCER en México.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}EC0301 y EC0217.01, CONOCER, carta descriptiva, instrumentos de evaluación, manual de curso, instructor certificado, capacitación México{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+    <meta name="author" content="PertinentIA">
+    <link rel="canonical" href="{% block canonical %}{{ canonical_url }}{% endblock %}">
+    <meta property="og:site_name" content="PertinentIA EC0301 y EC0217.01">
+    <meta property="og:title" content="{% block og_title %}{{ title }} - PertinentIA EC0301 y EC0217.01{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Genera documentos EC0301 y EC0217.01 con IA: Carta Descriptiva, IECs, Manuales y Auto-diagnóstico.{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:image" content="{% block og_image %}{{ public_base_url }}/static/favicon.svg{% endblock %}">
+    <meta property="og:locale" content="es_MX">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.og_title() }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}">
+    <link rel="icon" type="image/png" href="/static/favicon.png?v=3">
+    <link rel="alternate icon" href="/favicon.ico?v=3">
+    <link rel="apple-touch-icon" href="/static/favicon.png?v=3">
+    {% if gsc_verification %}<meta name="google-site-verification" content="{{ gsc_verification }}">{% endif %}
+    <meta name="facebook-domain-verification" content="702yuq3lliq5qpey0uarxfvs8xh9m5" />
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block jsonld %}{% endblock %}
+    {% if meta_pixel_id %}
+    <script>
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '{{ meta_pixel_id }}');
+      fbq('track', 'PageView');
+      window.fbqTrack = function(eventName, params){
+        try {
+          if (typeof fbq !== 'function' || !eventName) return;
+          var standard = ['Lead','CompleteRegistration','InitiateCheckout','Purchase','AddToCart','ViewContent','Search','Contact','Subscribe'];
+          var verb = (standard.indexOf(eventName) >= 0) ? 'track' : 'trackCustom';
+          if (params && typeof params === 'object') { fbq(verb, eventName, params); }
+          else { fbq(verb, eventName); }
+        } catch(e) {}
+      };
+      {% if pixel_events %}
+      (function(){
+        var queued = {{ pixel_events | tojson }};
+        if (Array.isArray(queued)) {
+          queued.forEach(function(ev){
+            if (ev && ev.name) { window.fbqTrack(ev.name, ev.params || {}); }
+          });
+        }
+      })();
+      {% endif %}
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ meta_pixel_id }}&ev=PageView&noscript=1"/></noscript>
+    {% endif %}
+    {% if ga4_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga4_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ ga4_id }}', {anonymize_ip: true});
+    </script>
+    {% endif %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand" style="text-decoration:none;">Pertinent<span>IA</span><span class="brand-suffix"> EC0301 y 0217.01</span></a>
+        <div class="nav-tagline">La Plataforma de la Capacitaci&oacute;n Certificada en M&eacute;xico</div>
+        <div class="nav-links">
+            <a href="/" class="{{ 'active' if active_page == 'home' }}">Inicio</a>
+            <a href="/elemento/1" class="{{ 'active' if active_page == 'e1' }}">Carta Descriptiva</a>
+            <a href="/elemento/2" class="{{ 'active' if active_page == 'e2' }}" title="Instrumentos de Evaluación de la Competencia">IECs</a>
+            <a href="/elemento/3" class="{{ 'active' if active_page == 'e3' }}">Manuales</a>
+        </div>
+        <div class="nav-more-dropdown">
+            <button class="nav-more-btn {{ 'active' if active_page in ['e4','dashboard_ce','cert','docs','precios','publicitar','afiliados','perfil'] }}" id="navMoreBtn" onclick="document.getElementById('navMoreMenu').classList.toggle('open'); event.stopPropagation();">
+                M&aacute;s <span class="nav-mobile-arrow">&#9662;</span>
+            </button>
+            <div class="nav-more-menu" id="navMoreMenu">
+                <a href="/elemento/4" class="{{ 'active' if active_page == 'e4' }}">Auto-diagn&oacute;stico</a>
+                {% if current_user.is_authenticated and current_user.is_premium %}
+                <a href="/dashboard-ce" class="{{ 'active' if active_page == 'dashboard_ce' }}">Centro Evaluador IA</a>
+                {% else %}
+                <a href="/certificado" class="{{ 'active' if active_page == 'cert' }}">Licencia Centro Evaluador IA</a>
+                {% endif %}
+                <a href="{% if current_user.is_authenticated %}/documentos{% else %}/login?next=/documentos{% endif %}" class="{{ 'active' if active_page == 'docs' }}">Mis Documentos</a>
+                <a href="{% if current_user.is_authenticated %}/precios{% else %}/login?next=/precios{% endif %}" class="{{ 'active' if active_page == 'precios' }}">Planes y Precios</a>
+                <a href="{% if current_user.is_authenticated %}/publicitar{% else %}/login?next=/publicitar{% endif %}" class="{{ 'active' if active_page == 'publicitar' }}">Publicitar</a>
+                <a href="{% if current_user.is_authenticated %}/afiliados{% else %}/login?next=/afiliados{% endif %}" class="{{ 'active' if active_page == 'afiliados' }}">Afiliados</a>
+                {% if current_user.is_authenticated %}
+                <a href="/perfil" class="{{ 'active' if active_page == 'perfil' }}">Mi Perfil</a>
+                {% endif %}
+            </div>
+        </div>
+        {% set page_labels = {
+            'home': 'Inicio',
+            'e1': 'Carta Descriptiva',
+            'e2': 'IECs',
+            'e3': 'Manuales',
+            'e4': 'Auto-diagnóstico',
+            'dashboard_ce': 'Centro Evaluador',
+            'cert': 'Licencia CE',
+            'docs': 'Mis Documentos',
+            'publicitar': 'Publicitar',
+            'afiliados': 'Afiliados',
+            'perfil': 'Mi Perfil'
+        } %}
+        <div class="nav-mobile-dropdown">
+            <button class="nav-mobile-current" id="navMobileBtn" onclick="document.getElementById('navMobileMenu').classList.toggle('open');">
+                {{ page_labels.get(active_page, 'Inicio') }} <span class="nav-mobile-arrow">&#9662;</span>
+            </button>
+            <div class="nav-mobile-menu" id="navMobileMenu">
+                <a href="/" class="{{ 'active' if active_page == 'home' }}">Inicio</a>
+                <a href="/elemento/1" class="{{ 'active' if active_page == 'e1' }}">Carta Descriptiva</a>
+                <a href="/elemento/2" class="{{ 'active' if active_page == 'e2' }}">IECs</a>
+                <a href="/elemento/3" class="{{ 'active' if active_page == 'e3' }}">Manuales</a>
+                <a href="/elemento/4" class="{{ 'active' if active_page == 'e4' }}">Auto-diagn&oacute;stico</a>
+                <div style="border-top:1px solid rgba(255,255,255,0.1);margin:2px 0;"></div>
+                {% if current_user.is_authenticated and current_user.is_premium %}
+                <a href="/dashboard-ce" class="{{ 'active' if active_page == 'dashboard_ce' }}">Centro Evaluador IA</a>
+                {% else %}
+                <a href="/certificado" class="{{ 'active' if active_page == 'cert' }}">Licencia Centro Evaluador IA</a>
+                {% endif %}
+                <a href="{% if current_user.is_authenticated %}/documentos{% else %}/login?next=/documentos{% endif %}" class="{{ 'active' if active_page == 'docs' }}">Mis Documentos</a>
+                <a href="{% if current_user.is_authenticated %}/precios{% else %}/login?next=/precios{% endif %}" class="{{ 'active' if active_page == 'precios' }}">Planes y Precios</a>
+                <a href="{% if current_user.is_authenticated %}/publicitar{% else %}/login?next=/publicitar{% endif %}" class="{{ 'active' if active_page == 'publicitar' }}">Publicitar</a>
+                <a href="{% if current_user.is_authenticated %}/afiliados{% else %}/login?next=/afiliados{% endif %}" class="{{ 'active' if active_page == 'afiliados' }}">Afiliados</a>
+                {% if current_user.is_authenticated %}
+                <a href="/perfil" class="{{ 'active' if active_page == 'perfil' }}">Mi Perfil</a>
+                {% endif %}
+            </div>
+        </div>
+        {% if current_user.is_authenticated %}
+        <div class="nav-user">
+            <span class="nav-user-name">{{ current_user.full_name }}</span>
+            <span class="nav-user-tier tier-{{ current_user.tier | lower }}">{{ current_user.tier }}</span>
+            {% if current_user.tier == 'PREMIUM' %}
+            <a href="https://wa.me/5591046391?text=Hola,%20requiero%20soporte%20VIP%20PREMIUM%20en%20PertinentIA." target="_blank" rel="noopener" class="nav-support-btn" title="Soporte VIP WhatsApp" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;margin-right:6px;">&#9993; Soporte VIP</a>
+            {% elif current_user.tier == 'PRO' %}
+            <a href="mailto:soporte@pertinentia.com?subject=URGENTE:%20Soporte%20PRO%20-%20PertinentIA" class="nav-support-btn" title="Soporte Prioritario PRO" style="display:inline-flex;align-items:center;gap:4px;background:#FA8072;color:#fff;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;margin-right:6px;">&#9993; Soporte PRO</a>
+            {% else %}
+            <a href="mailto:soporte@pertinentia.com?subject=Soporte%20Est%C3%A1ndar%20-%20PertinentIA" class="nav-support-btn" title="Soporte Estándar" onclick="alert('Tu solicitud será enviada por correo. Nuestro tiempo de respuesta para cuentas FREE es de 48 a 72 horas hábiles.');" style="display:inline-flex;align-items:center;gap:4px;background:#6b7280;color:#fff;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;margin-right:6px;">&#9993; Soporte</a>
+            {% endif %}
+            {% if current_user.is_admin %}
+            <a href="/admin-crm" class="nav-admin-link" title="Panel Admin">&#9881;</a>
+            {% endif %}
+            <a href="/logout" class="nav-logout" title="Cerrar sesión">Salir</a>
+        </div>
+        {% else %}
+        <div class="nav-user">
+            <a href="/login" class="nav-auth-btn nav-auth-login"><span class="auth-full">Iniciar Sesi&oacute;n</span><span class="auth-short">Entrar</span></a>
+            <a href="/registro" class="nav-auth-btn nav-auth-register"><span class="auth-full">Registrarse</span><span class="auth-short">Registro</span></a>
+        </div>
+        {% endif %}
+    </nav>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% if active_page in ['e1', 'e2', 'e3', 'e4'] %}
+    <div class="progress-bar-container">
+        <div class="progress-steps">
+            <a href="/elemento/1" class="progress-step {{ 'completed' if active_page in ['e2','e3','e4'] }} {{ 'active' if active_page == 'e1' }}">
+                <span class="step-num">1</span>
+                <span class="step-label">Carta Descriptiva</span>
+            </a>
+            <div class="step-connector {{ 'filled' if active_page in ['e2','e3','e4'] }}"></div>
+            <a href="/elemento/2" class="progress-step {{ 'completed' if active_page in ['e3','e4'] }} {{ 'active' if active_page == 'e2' }}" title="Instrumentos de Evaluación de la Competencia">
+                <span class="step-num">2</span>
+                <span class="step-label">IECs</span>
+            </a>
+            <div class="step-connector {{ 'filled' if active_page in ['e3','e4'] }}"></div>
+            <a href="/elemento/3" class="progress-step {{ 'completed' if active_page == 'e4' }} {{ 'active' if active_page == 'e3' }}">
+                <span class="step-num">3</span>
+                <span class="step-label">Manuales</span>
+            </a>
+            <div class="step-connector {{ 'filled' if active_page == 'e4' }}"></div>
+            <a href="/elemento/4" class="progress-step {{ 'active' if active_page == 'e4' }}">
+                <span class="step-num">4</span>
+                <span class="step-label">Auto-diagnóstico</span>
+            </a>
+            <div class="step-connector {{ 'filled' if active_page == 'cert' }}"></div>
+            {% if current_user.is_authenticated and current_user.is_premium %}
+            <a href="/dashboard-ce" class="progress-step {{ 'active' if active_page == 'dashboard_ce' }}">
+                <span class="step-num">5</span>
+                <span class="step-label">Centro Evaluador</span>
+            </a>
+            {% else %}
+            <a href="/certificado" class="progress-step {{ 'active' if active_page == 'cert' }}">
+                <span class="step-num">5</span>
+                <span class="step-label">Licencia IA</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% set show_ads = (active_page != 'home' and active_page not in ['e1','e2','e3','e4'] and ads is defined and ads|length > 0) %}
+    {% set is_premium_user = (current_user.is_authenticated and current_user.tier == 'PREMIUM') %}
+    {% set is_pro_user = (current_user.is_authenticated and current_user.tier == 'PRO') %}
+    {% if show_ads and not is_premium_user %}
+    {% if is_pro_user %}
+    <div id="ad-carousel-container" style="position:relative;max-width:480px;overflow:hidden;border-radius:10px;margin:0.5rem auto;">
+        <div id="module-ad-track" style="display:flex;transition:transform 0.5s ease;width:{{ ads|length * 100 }}%;">
+            {% for ad in ads %}
+            <a href="/api/ads/click/{{ ad.id }}" target="_blank" rel="noopener"
+               style="flex:0 0 {{ (100 / ads|length)|round(2) }}%;display:flex;align-items:stretch;text-decoration:none;color:#374151;background:#f9fafb;box-sizing:border-box;min-height:56px;max-height:60px;overflow:hidden;border:1px solid #e5e7eb;">
+                {% if ad.image_url %}
+                <div style="width:60px;flex-shrink:0;overflow:hidden;background:#f3f4f6;">
+                    <img src="{{ ad.image_url }}" alt="{{ ad.title }}" style="width:100%;height:100%;object-fit:cover;display:block;">
+                </div>
+                {% endif %}
+                <div style="flex:1;min-width:0;padding:0.4rem 0.6rem;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;">
+                    <div style="font-weight:600;font-size:0.72rem;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ad.title }}</div>
+                    <span style="font-size:0.5rem;color:#bbb;margin-top:0.15rem;">Publicidad</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div id="ad-carousel-container" class="ad-banner-large" style="position:relative;max-width:1100px;margin:0.5rem auto;">
+        <div id="module-ad-track" style="display:flex;transition:transform 0.5s ease;width:{{ ads|length * 100 }}%;">
+            {% for ad in ads %}
+            <a href="/api/ads/click/{{ ad.id }}" target="_blank" rel="noopener"
+               style="flex:0 0 {{ (100 / ads|length)|round(2) }}%;">
+                {% if ad.image_url %}
+                <div class="ad-lg-img">
+                    <img src="{{ ad.image_url }}" alt="{{ ad.title }}">
+                </div>
+                {% endif %}
+                <div class="ad-lg-text">
+                    <div class="ad-lg-title">{{ ad.title }}</div>
+                    {% if ad.description %}
+                    <div class="ad-lg-desc">{{ ad.description }}</div>
+                    {% endif %}
+                    <span class="ad-lg-badge">Publicidad</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% if ads|length > 1 %}
+        <div id="module-ad-dots" style="position:absolute;bottom:8px;right:12px;display:flex;gap:5px;z-index:2;">
+            {% for ad in ads %}
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ '#FA8072' if loop.first else 'rgba(0,0,0,0.12)' }};cursor:pointer;transition:background 0.3s;" data-idx="{{ loop.index0 }}"></span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    <script>
+    (function(){
+        var total = {{ ads|length }};
+        fetch('/api/ads/impression/{{ ads[0].id }}',{method:'POST'}).catch(function(){});
+        if (total <= 1) return;
+        var track = document.getElementById('module-ad-track');
+        if (!track) return;
+        var dots = document.getElementById('module-ad-dots');
+        var cur = 0;
+        var sent = {'{{ ads[0].id }}':true};
+        var ids = [{% for ad in ads %}'{{ ad.id }}'{% if not loop.last %},{% endif %}{% endfor %}];
+        var allDots = dots ? dots.querySelectorAll('span') : [];
+        function go(idx){
+            cur=idx%total;
+            track.style.transform='translateX(-'+(cur*(100/total))+'%)';
+            if(allDots.length){allDots.forEach(function(d,i){d.style.background=i===cur?'#FA8072':'rgba(0,0,0,0.15)';});}
+            if(!sent[ids[cur]]){fetch('/api/ads/impression/'+ids[cur],{method:'POST'}).catch(function(){});sent[ids[cur]]=true;}
+        }
+        if(allDots.length){allDots.forEach(function(d){d.addEventListener('click',function(e){e.preventDefault();go(parseInt(d.getAttribute('data-idx')));});});}
+        setInterval(function(){go(cur+1);},5000);
+    })();
+    </script>
+    {% elif active_page != 'home' %}
+    <div id="ad-carousel-container"></div>
+    {% endif %}
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    {% block scripts %}{% endblock %}
+    {% if current_user.is_authenticated %}
+    <script>
+    // ── Hard-Reset Signal ──────────────────────────────────────────────
+    // El backend marca `needs_state_reset_at` tras eventos críticos (pago
+    // Stripe FREE→PRO, etc). El cliente compara con su último ACK; si
+    // difiere, purga TODO el caché local del curso (NO toca créditos —
+    // los créditos viven en el servidor) y confirma con ACK.
+    (function(){
+        try {
+            fetch('/api/state_flags', {credentials: 'same-origin'})
+              .then(function(r){ return r.json(); })
+              .then(function(d){
+                if (!d || !d.reset_stamp) return;
+                var ackKey = 'pertinentia_last_reset_ack';
+                var last = null;
+                try { last = localStorage.getItem(ackKey); } catch(e) {}
+                if (last === d.reset_stamp) return; // ya purgado
+                // Purgar caches locales del curso (mismas claves que usa
+                // el botón "Nuevo Curso" en static/script.js).
+                try {
+                    localStorage.removeItem('pertinentia_course_topic');
+                    localStorage.removeItem('pertinentia_template_style');
+                    for (var i = 1; i <= 5; i++) {
+                        sessionStorage.removeItem('pertinentia_chat_e' + i);
+                    }
+                    sessionStorage.removeItem('pertinentia_anon_intent');
+                } catch(e) {}
+                try { localStorage.setItem(ackKey, d.reset_stamp); } catch(e) {}
+                // ACK al servidor (best-effort, telemetría).
+                fetch('/api/state_flags/ack', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({stamp: d.reset_stamp})
+                }).catch(function(){});
+              })
+              .catch(function(){});
+        } catch(e) {}
+    })();
+    </script>
+    {% endif %}
+    <script>
+    (function(){
+        var menu = document.getElementById('navMobileMenu');
+        var moreMenu = document.getElementById('navMoreMenu');
+        document.addEventListener('click', function(e) {
+            if (menu && !e.target.closest('.nav-mobile-dropdown')) {
+                menu.classList.remove('open');
+            }
+            if (moreMenu && !e.target.closest('.nav-more-dropdown')) {
+                moreMenu.classList.remove('open');
+            }
+        });
+    })();
+    </script>
+
+    <div id="betaFeedbackWidget" style="position:fixed;bottom:20px;right:20px;z-index:9999;">
+        <button id="betaFeedbackToggle" style="background:linear-gradient(135deg,#FA8072,#e8705f);color:#fff;border:none;border-radius:50%;width:48px;height:48px;cursor:pointer;font-size:1.3rem;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:transform 0.2s;" title="Tu opinión nos importa" onclick="toggleBetaPanel()">💬</button>
+        <div id="betaFeedbackPanel" style="display:none;position:absolute;bottom:60px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);padding:1.2rem;width:300px;font-family:Inter,sans-serif;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+                <span style="font-weight:700;color:#374151;font-size:0.95rem;">¿Cómo fue tu experiencia?</span>
+                <button onclick="toggleBetaPanel()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#9ca3af;">✕</button>
+            </div>
+            <div id="betaRatingRow" style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:0.8rem;">
+                <button class="beta-rate-btn" onclick="setBetaRating(1)" style="font-size:1.5rem;background:none;border:2px solid #e5e7eb;border-radius:8px;width:48px;height:48px;cursor:pointer;transition:all 0.2s;" title="Mala">😕</button>
+                <button class="beta-rate-btn" onclick="setBetaRating(3)" style="font-size:1.5rem;background:none;border:2px solid #e5e7eb;border-radius:8px;width:48px;height:48px;cursor:pointer;transition:all 0.2s;" title="Regular">😐</button>
+                <button class="beta-rate-btn" onclick="setBetaRating(5)" style="font-size:1.5rem;background:none;border:2px solid #e5e7eb;border-radius:8px;width:48px;height:48px;cursor:pointer;transition:all 0.2s;" title="Buena">😊</button>
+            </div>
+            <textarea id="betaComment" rows="3" placeholder="¿Qué mejorarías? ¿Algo te confundió? (opcional)" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:0.6rem;font-size:0.85rem;resize:none;font-family:Inter,sans-serif;box-sizing:border-box;"></textarea>
+            <button id="betaSendBtn" onclick="sendBetaFeedback()" style="width:100%;margin-top:0.6rem;background:#FA8072;color:#fff;border:none;padding:0.6rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.9rem;">Enviar</button>
+            <div id="betaThanks" style="display:none;text-align:center;padding:1rem 0;color:#16a34a;font-weight:600;">¡Gracias por tu retroalimentación!</div>
+        </div>
+    </div>
+
+    <script>
+    var _betaRating = null;
+    var _betaPageEnterTime = Date.now();
+    var _betaFirstGenDone = false;
+    var _betaActionTaken = false;
+
+    function toggleBetaPanel() {
+        var p = document.getElementById('betaFeedbackPanel');
+        p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+    function setBetaRating(r) {
+        _betaRating = r;
+        document.querySelectorAll('.beta-rate-btn').forEach(function(b) {
+            b.style.borderColor = '#e5e7eb';
+            b.style.background = 'none';
+        });
+        event.target.style.borderColor = '#FA8072';
+        event.target.style.background = '#fff5f4';
+    }
+    function sendBetaFeedback() {
+        var comment = document.getElementById('betaComment').value.trim();
+        if (!_betaRating && !comment) return;
+        var elNum = null;
+        if (typeof ELEMENT_NUM !== 'undefined') elNum = ELEMENT_NUM;
+        var genFile = null;
+        if (typeof lastGeneratedFile !== 'undefined') genFile = lastGeneratedFile;
+        fetch('/api/beta/feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                rating: _betaRating,
+                comment: comment,
+                page: window.location.pathname,
+                element_num: elNum,
+                generated_file: genFile,
+                feedback_type: 'widget'
+            })
+        }).catch(function(){});
+        document.getElementById('betaRatingRow').style.display = 'none';
+        document.getElementById('betaComment').style.display = 'none';
+        document.getElementById('betaSendBtn').style.display = 'none';
+        document.getElementById('betaThanks').style.display = 'block';
+        setTimeout(function() { toggleBetaPanel(); }, 2000);
+    }
+
+    (function() {
+        var elNum = null;
+        if (typeof ELEMENT_NUM !== 'undefined') elNum = ELEMENT_NUM;
+        var path = window.location.pathname;
+        if (path.indexOf('/elemento') >= 0 || path === '/') {
+            fetch('/api/beta/metric', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'page_enter', element_num: elNum, value_text: path})
+            }).catch(function(){});
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (!_betaActionTaken && (path.indexOf('/elemento') >= 0)) {
+                var blob = new Blob([JSON.stringify({type: 'page_leave_no_action', element_num: elNum})], {type: 'application/json'});
+                navigator.sendBeacon('/api/beta/metric', blob);
+            }
+        });
+    })();
+
+    function trackBetaGeneration(elNum, genFile) {
+        _betaActionTaken = true;
+        if (!_betaFirstGenDone) {
+            _betaFirstGenDone = true;
+            var timeToGen = Math.round((Date.now() - _betaPageEnterTime) / 1000);
+            fetch('/api/beta/metric', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'time_to_first_gen', element_num: elNum, value_int: timeToGen})
+            }).catch(function(){});
+        }
+        fetch('/api/beta/metric', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({type: 'generation_complete', element_num: elNum, value_text: genFile || ''})
+        }).catch(function(){});
+    }
+
+    function trackBetaDownload(elNum, filename) {
+        _betaActionTaken = true;
+        fetch('/api/beta/metric', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({type: 'download_click', element_num: elNum, value_text: filename || ''})
+        }).catch(function(){});
+    }
+    </script>
+
+    <footer style="margin:3rem auto 1.5rem;max-width:1100px;padding:1.2rem 1.5rem;border-top:1px solid #e5e7eb;color:#6b7280;font-size:0.82rem;text-align:center;line-height:1.6;">
+        <div style="margin-bottom:0.4rem;">
+            <a href="/diagnostico-mi-clase" style="color:#FA8072;font-weight:600;text-decoration:none;">🎯 Diagnostica tu clase contra el EC0217.01</a>
+            <span style="margin:0 8px;color:#d1d5db;">·</span>
+            <a href="/recursos/ec0217-ficha-estandar.pdf" target="_blank" rel="noopener" style="color:#1e40af;text-decoration:none;">📘 Ficha EC0217.01 (CONOCER)</a>
+            <span style="margin:0 8px;color:#d1d5db;">·</span>
+            <a href="/precios" style="color:#374151;text-decoration:none;">Planes y precios</a>
+        </div>
+        <div style="font-size:0.75rem;color:#9ca3af;">PertinentIA &mdash; F&aacute;brica de Productos EC0301 y EC0217.01</div>
+    </footer>
+</body>
+</html>

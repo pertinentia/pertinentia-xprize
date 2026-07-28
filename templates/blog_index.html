@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block meta_description %}Blog PertinentIA: guías, tutoriales y noticias sobre EC0301 y EC0217.01, certificación CONOCER y capacitación profesional en México.{% endblock %}
+{% block meta_keywords %}blog EC0301 y EC0217.01, blog CONOCER, capacitación México, instructor certificado{% endblock %}
+{% block og_title %}Blog PertinentIA — EC0301 y EC0217.01{% endblock %}
+{% block og_description %}Guías y tutoriales sobre certificación EC0301 y EC0217.01 del CONOCER en México.{% endblock %}
+{% block jsonld %}
+{% set _blog_posts = [] %}
+{% for p in posts %}{% set _ = _blog_posts.append({"@type":"BlogPosting","headline": p.title, "datePublished": p.published_at|string, "url": public_base_url + "/blog/" + p.slug}) %}{% endfor %}
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"Blog","name":"Blog PertinentIA EC0301 y EC0217.01","url": canonical_url, "blogPost": _blog_posts} | tojson | safe }}</script>
+{% endblock %}
+{% block content %}
+<div class="seo-landing">
+<header class="seo-hero">
+  <span class="seo-badge">Blog · EC0301 y EC0217.01</span>
+  <h1>Guías y recursos para tu certificación EC0301 y EC0217.01</h1>
+  <p class="seo-lede">Tutoriales prácticos, plantillas y consejos para construir tu portafolio de evidencias y certificarte ante el CONOCER en México.</p>
+  <a href="/registro?from=seo_blog" class="seo-cta-primary">Crear cuenta gratis</a>
+</header>
+
+<section style="text-align:center;margin:1rem 0 2rem;">
+  <video controls preload="none" playsinline poster="{{ url_for('static', filename='videos/pertinentia_promo_poster.jpg') }}" style="width:100%;max-width:720px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);background:#000;">
+    <source src="{{ url_for('static', filename='videos/pertinentia_promo.mp4') }}" type="video/mp4">
+    Tu navegador no soporta el video.
+  </video>
+</section>
+
+<section>
+  {% if posts %}
+  <div style="display:grid;gap:1.5rem;">
+    {% for p in posts %}
+    <article style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;transition:box-shadow 0.2s;">
+      <div style="font-size:0.78rem;color:#9ca3af;margin-bottom:0.5rem;">{{ p.published_at.strftime('%d %b %Y') }} · {{ p.reading_minutes }} min de lectura · {{ p.author }}</div>
+      <h2 style="border:none;padding:0;margin:0 0 0.5rem 0;font-size:1.3rem;"><a href="/blog/{{ p.slug }}" style="color:#111827;text-decoration:none;">{{ p.title }}</a></h2>
+      <p style="color:#4b5563;margin:0.4rem 0 1rem 0;">{{ p.excerpt }}</p>
+      <a href="/blog/{{ p.slug }}" style="color:#FA8072;font-weight:600;text-decoration:none;">Leer artículo &rarr;</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>Pronto publicaremos contenido. Mientras tanto, conoce nuestras <a href="/carta-descriptiva-ec0301-y-ec0217-01-ejemplo">guías de Carta Descriptiva</a>.</p>
+  {% endif %}
+</section>
+</div>
+
+<style>
+.seo-landing{max-width:880px;margin:0 auto;padding:2rem 1.2rem;font-family:Inter,sans-serif;color:#1f2937;line-height:1.65;}
+.seo-hero{text-align:center;margin-bottom:2.5rem;padding:2rem 1rem;background:linear-gradient(135deg,#fff5f4,#fff);border-radius:14px;}
+.seo-badge{display:inline-block;background:#FA8072;color:#fff;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:700;letter-spacing:0.4px;}
+.seo-hero h1{font-size:1.7rem;font-weight:800;margin:0.8rem 0;line-height:1.25;color:#111827;}
+.seo-lede{font-size:1rem;color:#4b5563;max-width:720px;margin:0 auto 1.2rem;}
+.seo-cta-primary{display:inline-block;background:#FA8072;color:#fff;padding:0.85rem 1.6rem;border-radius:10px;font-weight:700;text-decoration:none;box-shadow:0 4px 12px rgba(250,128,114,0.3);}
+@media (max-width:640px){.seo-hero h1{font-size:1.4rem;}}
+</style>
+{% endblock %}

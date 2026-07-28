@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competencia XPrize</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Competencia <span>XPrize</span></div>
+        <div class="nav-tagline">Generador de Documentos</div>
+    </nav>
+
+    <div class="container">
+        <div class="module-hero mod-1">
+            <div class="module-hero-icon">📄</div>
+            <div class="module-hero-text">
+                <h1>Generador de Documentos con IA</h1>
+                <p>Selecciona el tipo de documento que necesitas y Gemini lo redactará por ti.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Configuración del Documento</h2>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="tipo">Selecciona el tipo de documento:</label>
+                <select id="tipo" name="tipo" style="padding: 0.7rem; border-radius: 8px; border: 1.5px solid #d1d5db; width: 100%; margin-top: 0.5rem;">
+                    {% for doc in doc_types %}
+                        <option value="{{ doc }}">{{ doc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button id="btnGenerar" class="gen-btn">Generar Documento</button>
+            
+            <div id="loadingIndicator" class="loading" style="margin-top: 1rem;">
+                <div class="spinner"></div> <span>Generando con Gemini, por favor espera...</span>
+            </div>
+        </div>
+
+        <div class="card" id="resultadoCard" style="display: none;">
+            <h2>Resultado</h2>
+            <div class="chat-container">
+                <div id="resultadoContenido" class="chat-messages msg assistant" style="min-height: 100px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('btnGenerar').addEventListener('click', async () => {
+            const tipo = document.getElementById('tipo').value;
+            const btn = document.getElementById('btnGenerar');
+            const loading = document.getElementById('loadingIndicator');
+            const resCard = document.getElementById('resultadoCard');
+            const resContent = document.getElementById('resultadoContenido');
+
+            // Estado de carga
+            btn.disabled = true;
+            loading.classList.add('active');
+            resCard.style.display = 'none';
+            resContent.innerHTML = '';
+
+            try {
+                // Llamada a tu app.py
+                const response = await fetch('/api/generar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo: tipo })
+                });
+                
+                const data = await response.json();
+                
+                // Mostrar resultado
+                resContent.innerHTML = data.markdown || "Documento generado exitosamente. Revisa las descargas si aplica.";
+                resCard.style.display = 'block';
+            } catch (error) {
+                resContent.innerHTML = "<strong style='color:red;'>Error de conexión.</strong> No se pudo contactar al servidor.";
+                resCard.style.display = 'block';
+            } finally {
+                // Restaurar botón
+                btn.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

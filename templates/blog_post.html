@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block meta_description %}{{ post.meta_description }}{% endblock %}
+{% block meta_keywords %}{{ post.keywords }}{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block og_description %}{{ post.excerpt }}{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">{{ {
+  "@context":"https://schema.org",
+  "@type":"BlogPosting",
+  "headline": post.title,
+  "description": post.meta_description,
+  "datePublished": post.published_at|string,
+  "author": {"@type":"Organization","name": post.author},
+  "publisher": {"@type":"Organization","name":"PertinentIA","url": public_base_url},
+  "mainEntityOfPage": canonical_url
+} | tojson | safe }}</script>
+{% endblock %}
+{% block content %}
+<article class="seo-landing">
+<header class="seo-hero" style="text-align:left;">
+  <span class="seo-badge">Blog · EC0301 y EC0217.01</span>
+  <h1>{{ post.title }}</h1>
+  <div style="color:#9ca3af;font-size:0.85rem;margin-top:0.5rem;">{{ post.published_at.strftime('%d de %B de %Y') }} · {{ post.reading_minutes }} min · {{ post.author }}</div>
+</header>
+
+<div class="post-body">
+  {{ post.body_html | safe }}
+</div>
+
+<nav style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e5e7eb;">
+  <a href="/blog" style="color:#FA8072;text-decoration:none;font-weight:600;">&larr; Volver al blog</a>
+</nav>
+</article>
+
+<style>
+.seo-landing{max-width:760px;margin:0 auto;padding:2rem 1.2rem;font-family:Inter,sans-serif;color:#1f2937;line-height:1.7;}
+.seo-hero{margin-bottom:2rem;padding:1.5rem 0;border-bottom:1px solid #e5e7eb;}
+.seo-badge{display:inline-block;background:#FA8072;color:#fff;padding:0.3rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:700;letter-spacing:0.4px;}
+.seo-hero h1{font-size:2rem;font-weight:800;margin:0.8rem 0 0.4rem;line-height:1.25;color:#111827;}
+.post-body h2{font-size:1.4rem;font-weight:700;color:#111827;margin:2rem 0 0.7rem;border-left:4px solid #FA8072;padding-left:0.7rem;}
+.post-body p{margin:0.8rem 0;}
+.post-body ul,.post-body ol{padding-left:1.5rem;}
+.post-body li{margin:0.35rem 0;}
+.post-body a{color:#FA8072;}
+.post-body pre{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;overflow-x:auto;}
+</style>
+{% endblock %}

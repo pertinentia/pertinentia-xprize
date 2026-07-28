@@ -1,0 +1,15 @@
+flask
+google-genai
+python-docx
+stripe
+gunicorn
+flask-sqlalchemy
+psycopg2-binary
+flask-login
+werkzeug
+python-dotenv
+apscheduler
+whitenoise==6.7.0
+pypdf
+lxml
+google-cloud-vision

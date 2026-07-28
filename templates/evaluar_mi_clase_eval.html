@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.eval-wrap { max-width: 880px; margin: 0 auto; }
+.eval-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+.mode-badge { display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin-left: 0.5rem; }
+.mode-preview { background: #fef3c7; color: #92400e; }
+.mode-full { background: #d1fae5; color: #065f46; }
+.eval-status { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+.status-pendiente_video { background: #fef3c7; color: #92400e; }
+.status-procesando_video { background: #dbeafe; color: #1e40af; }
+.status-video_procesado { background: #d1fae5; color: #065f46; }
+.status-preview_procesado { background: #fde68a; color: #92400e; }
+.status-predictamen_generado { background: #ede9fe; color: #5b21b6; }
+.status-dictaminado { background: #ede9fe; color: #5b21b6; }
+.status-error { background: #fee2e2; color: #991b1b; }
+.btn-action { background: #FA8072; color: #fff; border: 0; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+.btn-action:hover { background: #e76b5e; }
+.btn-action:disabled { background: #d1d5db; cursor: not-allowed; }
+.dictamen-badge { display: inline-block; padding: 0.5rem 1.2rem; border-radius: 999px; font-weight: 700; font-size: 1.15rem; }
+.dictamen-Competente { background: #d1fae5; color: #065f46; }
+.dictamen-Todavia { background: #fee2e2; color: #991b1b; }
+.upgrade-box { background: linear-gradient(135deg,#fff5f3,#fff); border: 2px solid #FA8072; padding: 1.5rem; border-radius: 12px; margin-top: 1rem; }
+.upgrade-box h3 { color: #1a1a2e; margin: 0 0 0.6rem; }
+.upgrade-box .cta { display: inline-block; background: #FA8072; color: #fff; padding: 0.8rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 700; margin-top: 0.6rem; }
+.reactivo-row { padding: 0.8rem; border-bottom: 1px solid #f3f4f6; }
+.reactivo-row:last-child { border-bottom: 0; }
+.reactivo-momento { font-size: 0.7rem; font-weight: 700; color: #FA8072; text-transform: uppercase; letter-spacing: 0.5px; }
+.reactivo-id { font-weight: 700; color: #1a1a2e; }
+.reactivo-cumple-true { color: #065f46; }
+.reactivo-cumple-false { color: #991b1b; }
+.disclaimer { font-size: 0.78rem; color: #6b7280; font-style: italic; line-height: 1.5; text-align: center; margin-top: 1rem; }
+.log-box { background: #1a1a2e; color: #d1fae5; padding: 0.8rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; max-height: 140px; overflow-y: auto; margin-top: 0.6rem; display: none; }
+.reactivo-cumple-noeval { color: #6b7280; }
+.estado-pill { display:inline-block; padding:0.12rem 0.55rem; border-radius:999px; font-size:0.72rem; font-weight:700; }
+.estado-cumplido { background:#d1fae5; color:#065f46; }
+.estado-nocumplido { background:#fee2e2; color:#991b1b; }
+.estado-noeval { background:#f3f4f6; color:#6b7280; }
+.locked-row { padding:0.8rem; border-bottom:1px solid #f3f4f6; background:#f9fafb; color:#9ca3af; display:flex; align-items:center; gap:0.5rem; }
+.locked-row:last-child { border-bottom:0; }
+.locked-bar { flex:1; height:10px; border-radius:999px; background:linear-gradient(90deg,#e5e7eb,#f3f4f6); }
+.pdf-btn { display:inline-block; background:#0e7490; color:#fff; padding:0.7rem 1.3rem; border-radius:8px; text-decoration:none; font-weight:700; margin-top:0.8rem; }
+.pdf-btn:hover { background:#0c627a; }
+.conocer-note { font-size:0.82rem; color:#374151; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:0.9rem 1rem; line-height:1.55; margin-top:1.2rem; }
+</style>
+
+<div class="eval-wrap">
+<div class="eval-card">
+    <h1 style="margin:0 0 0.5rem;font-size:1.5rem;color:#1a1a2e;">
+        Tu evaluaci&oacute;n EC0217.01 #{{ ev.id }}
+        {% if ev.e5_mode == 'preview' and not ev.e5_unlocked %}<span class="mode-badge mode-preview">Pre-dictamen (10 min)</span>{% elif ev.e5_unlocked %}<span class="mode-badge mode-full">Completa</span>{% endif %}
+    </h1>
+    {% set status_labels = {'pendiente_video':'Pendiente de transcripci&oacute;n','procesando_video':'Procesando','video_procesado':'Transcripci&oacute;n lista','preview_procesado':'Pre-dictamen listo','predictamen_generado':'Pre-dictamen generado','dictaminado':'Dictamen generado','error':'Error'} %}
+    <span class="eval-status status-{{ ev.status }}">{{ status_labels.get(ev.status, ev.status)|safe }}</span>
+</div>
+
+{% if not ev.video_transcripcion %}
+<div class="eval-card">
+    <h2 style="margin:0 0 0.6rem;font-size:1.15rem;">Paso 1 &middot; Falta la transcripci&oacute;n</h2>
+    <p style="margin:0 0 0.8rem;color:#374151;">A&uacute;n no registramos la transcripci&oacute;n de esta clase. Vuelve a iniciar tu evaluaci&oacute;n pegando o subiendo el texto de tu clase.</p>
+    <a href="{{ url_for('evaluar_mi_clase_landing') }}" class="btn-action" style="text-decoration:none;display:inline-block;">Volver a iniciar &rarr;</a>
+</div>
+{% else %}
+<div class="eval-card">
+    <h2 style="margin:0 0 0.6rem;font-size:1.15rem;">&#10003; Paso 1 &middot; Transcripci&oacute;n lista</h2>
+    <p style="margin:0;color:#374151;font-size:0.9rem;">
+        Recibimos la transcripci&oacute;n de tu clase.
+        {% if ev.e5_mode == 'preview' and not ev.e5_unlocked %}&middot; <strong>Modo pre-dictamen (Lista previa + Encuadre)</strong>{% endif %}
+    </p>
+    <details style="margin-top:0.6rem;"><summary style="cursor:pointer;font-size:0.85rem;color:#6b7280;">Ver transcripci&oacute;n (extracto)</summary>
+    <p style="font-size:0.85rem;color:#374151;margin-top:0.5rem;white-space:pre-line;">{{ ev.video_transcripcion[:800] }}{% if ev.video_transcripcion|length > 800 %}&hellip;{% endif %}</p></details>
+</div>
+
+{% if not dictamen %}
+<div class="eval-card">
+    <h2 style="margin:0 0 0.6rem;font-size:1.15rem;">Paso 2 &middot; Generar dictamen IA</h2>
+    <p style="margin:0 0 0.8rem;color:#374151;">
+        {% if ev.e5_mode == 'preview' and not ev.e5_unlocked %}
+        Pre-dictamen IA sobre <strong>Lista de Verificaci&oacute;n previa + Encuadre</strong>.
+        {% else %}
+        An&aacute;lisis IA completo de las 4 etapas del EC0217.01.
+        {% endif %}
+    </p>
+    <button id="btn-dictaminar" class="btn-action">Generar dictamen &rarr;</button>
+    <div id="log-dictaminar" class="log-box"></div>
+</div>
+{% else %}
+<div class="eval-card" id="dictamen-card">
+    <h2 style="margin:0 0 0.8rem;font-size:1.25rem;">{% if is_preview %}Pre-dictamen IA (gratuito){% else %}Dictamen IA completo{% endif %}</h2>
+    <span class="dictamen-badge dictamen-{{ 'Competente' if dictamen.dictamen_global == 'Competente' else 'Todavia' }}">{{ dictamen.dictamen_global }}</span>
+    {% if dictamen.porcentaje_cobertura is defined %}
+    <p style="margin:0.8rem 0 0;font-size:1.05rem;color:#374151;">Cobertura: <strong>{{ dictamen.porcentaje_cobertura }}%</strong>{% if dictamen.reactivos_cumplidos is defined %} &middot; {{ dictamen.reactivos_cumplidos }}/{{ dictamen.reactivos_evaluables if dictamen.reactivos_evaluables is defined else dictamen.total_reactivos }} reactivos evaluables por transcripci&oacute;n{% endif %}</p>
+    {% endif %}
+    {% if dictamen.resumen_global %}<p style="margin:0.6rem 0 0;color:#374151;line-height:1.55;">{{ dictamen.resumen_global }}</p>{% endif %}
+
+    {% if dictamen.reactivos %}
+    {% set total_react = dictamen.reactivos|length %}
+    {% set shown = dictamen.reactivos[:3] if is_preview else dictamen.reactivos %}
+    <h3 style="margin:1.5rem 0 0.6rem;color:#1a1a2e;font-size:1.05rem;">{% if is_preview %}Hallazgos preliminares (primeros 3 reactivos){% else %}Desglose reactivo por reactivo{% endif %}</h3>
+    <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    {% for r in shown %}
+    {% set estado = r.estado if r.estado is defined and r.estado else ('cumplido' if r.cumple else 'no_cumplido') %}
+    <div class="reactivo-row">
+        <div class="reactivo-momento">{{ r.momento }}</div>
+        <div style="margin:0.2rem 0;"><span class="reactivo-id">{{ r.id }}</span> &middot; {{ r.descripcion }}</div>
+        {% if estado == 'cumplido' %}
+        <div style="font-weight:600;font-size:0.9rem;"><span class="estado-pill estado-cumplido">&#10003; Cumple</span></div>
+        {% elif estado == 'no_evaluable' %}
+        <div style="font-weight:600;font-size:0.9rem;"><span class="estado-pill estado-noeval">No evaluable por transcripci&oacute;n</span></div>
+        {% else %}
+        <div style="font-weight:600;font-size:0.9rem;"><span class="estado-pill estado-nocumplido">&#10007; No cumple</span></div>
+        {% endif %}
+        {% if r.evidencia %}<div style="font-size:0.82rem;color:#6b7280;margin-top:0.3rem;"><em>Evidencia:</em> {{ r.evidencia }}</div>{% endif %}
+        {% if estado != 'cumplido' and r.recomendacion %}<div style="font-size:0.82rem;color:#7c3aed;margin-top:0.3rem;"><em>{{ 'Nota' if estado == 'no_evaluable' else 'Recomendaci&oacute;n' | safe }}:</em> {{ r.recomendacion }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% if is_preview and total_react > 3 %}
+        {% for i in range(total_react - 3) %}
+        <div class="locked-row"><span>&#128274;</span><div class="locked-bar"></div></div>
+        {% endfor %}
+    {% endif %}
+    </div>
+    {% if is_preview and total_react > 3 %}
+    <p style="font-size:0.85rem;color:#6b7280;margin:0.6rem 0 0;">&#128274; {{ total_react - 3 }} reactivo(s) m&aacute;s del pre-dictamen quedan bloqueados. La evaluaci&oacute;n completa analiza la transcripci&oacute;n entera (Encuadre, Desarrollo y Cierre).</p>
+    {% endif %}
+    {% endif %}
+
+    {% if is_preview %}
+    <div class="upgrade-box">
+        <h3>&iquest;Quieres tu evaluaci&oacute;n completa?</h3>
+        <p style="margin:0;color:#374151;line-height:1.55;">Esto fue solo un pre-dictamen gratuito. Por <strong>$349 MXN</strong> obtienes:</p>
+        <ul style="margin:0.5rem 0;color:#374151;font-size:0.92rem;">
+            <li>Evaluaci&oacute;n de la transcripci&oacute;n completa de tu clase</li>
+            <li>Desglose de TODOS los reactivos del EC0217.01 con sus c&oacute;digos reales y evidencias citadas</li>
+            <li>Dictamen final con recomendaciones de mejora detalladas</li>
+            <li>Informe descargable en PDF</li>
+        </ul>
+        <a href="{{ stripe_link_e5 }}?client_reference_id={{ current_user.id }}&pid={{ ev.id }}" class="cta" target="_blank" rel="noopener">Ver evaluaci&oacute;n completa &mdash; $349</a>
+        <p style="font-size:0.78rem;color:#6b7280;margin:0.8rem 0 0;">Tras tu pago, regresa a esta p&aacute;gina (inicia sesi&oacute;n con tu mismo correo) y haz clic en &laquo;Activar mi evaluaci&oacute;n completa&raquo;.</p>
+        <button id="btn-upgrade" class="btn-action" style="background:#10b981;margin-top:0.5rem;">Ya pagu&eacute; &mdash; Activar mi evaluaci&oacute;n completa</button>
+        <div id="log-upgrade" class="log-box"></div>
+    </div>
+    {% elif is_unlocked %}
+    <a href="/api/eval-mi-clase/{{ ev.id }}/descargar-pdf" class="pdf-btn">&#11015; Descargar informe en PDF</a>
+    <div class="conocer-note">Esta evaluaci&oacute;n es una aproximaci&oacute;n orientadora generada por inteligencia artificial. La evaluaci&oacute;n oficial y vinculante corresponde exclusivamente a un evaluador y comit&eacute; t&eacute;cnico acreditados por el CONOCER.</div>
+    {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+<p class="disclaimer">Resultado generado por IA con fines de autodiagn&oacute;stico preciso. El dictamen oficial corresponde al Evaluador Acreditado.</p>
+</div>
+
+<script>
+(function(){
+    var btnD = document.getElementById('btn-dictaminar');
+    var btnU = document.getElementById('btn-upgrade');
+    var logD = document.getElementById('log-dictaminar');
+    var logU = document.getElementById('log-upgrade');
+    function log(el, msg){ if(!el) return; el.style.display='block'; el.innerHTML += msg + '<br>'; el.scrollTop = el.scrollHeight; }
+    if (btnD) btnD.addEventListener('click', function(){
+        btnD.disabled = true; btnD.textContent = 'Analizando con IA...';
+        log(logD, '&rarr; Enviando transcripci&oacute;n a IA...');
+        fetch('/api/eval-mi-clase/{{ ev.id }}/dictamen-rapido', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(r => r.json()).then(d => {
+            if (d.error) { log(logD, '&#10007; ' + d.error); btnD.disabled=false; btnD.textContent='Reintentar'; return; }
+            log(logD, '&#10003; Dictamen generado. Recargando...');
+            setTimeout(()=>location.reload(), 1000);
+        }).catch(function(){ log(logD, '&#10007; No pudimos completar el an&aacute;lisis. Revisa tu conexi&oacute;n e int&eacute;ntalo de nuevo.'); btnD.disabled=false; btnD.textContent='Reintentar'; });
+    });
+    if (btnU) btnU.addEventListener('click', function(){
+        btnU.disabled = true; btnU.textContent = 'Verificando pago...';
+        log(logU, '&rarr; Validando cr&eacute;dito E5...');
+        fetch('/api/eval-mi-clase/{{ ev.id }}/upgrade-to-full', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(r => r.json()).then(d => {
+            if (d.error) { log(logU, '&#10007; ' + d.error + ' (Si ya pagaste, espera unos segundos al webhook de Stripe e intenta de nuevo).'); btnU.disabled=false; btnU.textContent='Reintentar'; return; }
+            if (d.already_unlocked) {
+                log(logU, '&#10003; Ya activado previamente. Recargando...');
+                setTimeout(()=>location.reload(), 800); return;
+            }
+            log(logU, '&#10003; Activado v&iacute;a ' + (d.via||'cr&eacute;dito') + '. Recargando...');
+            setTimeout(()=>location.reload(), 800);
+        }).catch(function(){ log(logU, '&#10007; No pudimos validar tu pago en este momento. Espera unos segundos e int&eacute;ntalo de nuevo.'); btnU.disabled=false; btnU.textContent='Reintentar'; });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,2673 @@
+{% extends "base.html" %}
+{% block content %}
+{% set module_icons = {1: '📋', 2: '📝', 3: '📚', 4: '🔍'} %}
+{% set module_hints = {
+    1: 'Escribe el tema de tu curso abajo o usa una acción rápida',
+    2: 'Selecciona un instrumento o escribe tu solicitud',
+    3: 'Elige qué manual generar o escribe tu solicitud',
+    4: 'Elige una opción de auditoría abajo'
+} %}
+{% set is_free_view = (not current_user.is_authenticated or current_user.tier == 'FREE') %}
+{% set is_premium_view = (current_user.is_authenticated and current_user.tier == 'PREMIUM') %}
+{% set show_elem_ads = (ads is defined and ads|length > 0 and not is_premium_view) %}
+<style>
+.elem-top { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; align-items: stretch; }
+.elem-ad-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; min-height: 180px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); position: relative; margin-top: 1.5rem; }
+#elem-ad-bottom-wrap { margin-top: 1.5rem; }
+.scroll-hint-arrow {
+    position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%);
+    z-index: 9000; background: linear-gradient(135deg,#FA8072,#e96050); color:#fff;
+    border:0; border-radius: 999px; padding: 0.7rem 1.1rem 0.7rem 1.2rem;
+    font-weight:700; font-size:0.92rem; cursor:pointer; box-shadow: 0 6px 20px rgba(250,128,114,0.45);
+    display:none; align-items:center; gap:0.5rem; animation: scroll-bounce 1.6s ease-in-out infinite;
+}
+.scroll-hint-arrow:hover { filter: brightness(1.06); }
+.scroll-hint-arrow .arrow-icon { display:inline-block; font-size:1.1rem; }
+@keyframes scroll-bounce {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, 8px); }
+}
+@media (max-width: 600px) {
+    .scroll-hint-arrow { bottom: 90px; font-size:0.85rem; padding: 0.6rem 0.9rem; }
+}
+.elem-ad-track { display: flex; transition: transform 0.5s ease; height: 100%; }
+.elem-ad-slide { display: flex; align-items: stretch; text-decoration: none; color: #374151; box-sizing: border-box; min-height: 220px; overflow: hidden; border: 1px solid rgba(250,128,114,0.15); background: linear-gradient(135deg, rgba(250,128,114,0.12), rgba(250,128,114,0.04)); }
+.elem-ad-slide .ad-img-wrap { width: 60%; flex-shrink: 0; overflow: hidden; background: #f3f4f6; }
+.elem-ad-slide .ad-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.elem-ad-slide .ad-text-wrap { width: 40%; min-width: 0; padding: 1rem 1.2rem; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; }
+.elem-ad-slide .ad-title { font-weight: 700; font-size: 1.05rem; color: #1f2937; margin-bottom: 0.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.elem-ad-slide .ad-desc { font-size: 0.82rem; color: #6b7280; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.elem-ad-badge { display: inline-block; font-size: 0.65rem; background: rgba(0,0,0,0.08); padding: 2px 10px; border-radius: 10px; color: #6b7280; margin-top: 0.6rem; align-self: flex-start; }
+.elem-ad-dots { position: absolute; bottom: 8px; right: 12px; display: flex; gap: 5px; z-index: 2; }
+.elem-ad-dots span { width: 8px; height: 8px; border-radius: 50%; cursor: pointer; transition: background 0.3s; }
+.elem-top .module-hero { margin-bottom: 0; min-height: auto; box-sizing: border-box; }
+@media (max-width: 768px) {
+    .elem-top { display: block; }
+    .elem-ad-card { margin-top: 1rem; min-height: auto; }
+    .elem-ad-slide { flex-direction: column; min-height: auto; }
+    .elem-ad-slide .ad-img-wrap { width: 100%; height: 180px; }
+    .elem-ad-slide .ad-text-wrap { width: 100%; padding: 0.75rem 1rem; max-height: 90px; overflow: hidden; }
+    .elem-top .module-hero { min-height: auto; }
+}
+</style>
+<div class="elem-top">
+    <div class="module-hero mod-{{ element_num }}{{ ' compact' if is_free_view }}">
+        <div class="module-hero-icon">{{ module_icons[element_num] }}</div>
+        <div class="module-hero-text">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_description }}</p>
+        </div>
+        {% if element_num != 4 %}
+        <div class="module-info-tooltip">
+            <span class="info-pulse" title="{{ welcome_message_ready }}">&#9432;</span>
+            <div class="info-tooltip-box">{{ welcome_message_ready }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.anon-blur-section {
+    filter: blur(5px);
+    user-select: none;
+    opacity: 0.6;
+}
+.anon-blur-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+.anon-blur-wrapper::after {
+    content: '🔒 Regístrate GRATIS para ver el contenido completo';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2.5rem 1rem 1.5rem;
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #fff;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(250,128,114,0.95) 55%, rgba(233,96,80,1) 100%);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    border-radius: 0 0 8px 8px;
+    animation: pulse-cta 1.4s ease-in-out infinite;
+    transform-origin: center bottom;
+}
+.anon-blur-wrapper:hover::after { filter: brightness(1.08); }
+@keyframes pulse-cta {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250,128,114,0.45); }
+    50%      { transform: scale(1.025); box-shadow: 0 0 0 14px rgba(250,128,114,0); }
+}
+@keyframes pulse-loading {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+.loading.active {
+    animation: pulse-loading 1.8s ease-in-out infinite;
+}
+</style>
+
+<div id="topicBar" class="topic-bar" style="display:none;">
+    <span id="topicBadge" class="topic-badge-text"></span>
+    <span id="courseSessionCounter" style="display:none;margin-left:8px;padding:2px 8px;background:#dbeafe;color:#1e3a8a;border-radius:10px;font-size:0.72rem;font-weight:700;letter-spacing:0.02em;"></span>
+    <button class="reset-btn" onclick="resetCourse()" title="Iniciar un curso diferente">&#128260; Iniciar Nuevo Curso</button>
+</div>
+
+{% if current_user.is_authenticated %}
+<div id="courseNavigator" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:0.55rem 0.85rem;margin:0 0 0.6rem;font-size:0.85rem;">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.55rem;">
+        <span style="font-weight:600;color:#374151;">&#128218; Tus cursos:</span>
+        <select id="courseSessionSelect" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;background:#fff;min-width:240px;flex:1 1 240px;"></select>
+        <button id="reloadCourseBtn" onclick="reloadSelectedCourse()" style="background:#2563eb;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;">&#8634; Recargar curso</button>
+        <details style="flex-basis:100%;margin-top:4px;">
+            <summary style="cursor:pointer;font-size:0.78rem;color:#6b7280;">Documentos y conversaciones por curso</summary>
+            <div id="courseGroupsList" style="margin-top:6px;font-size:0.8rem;color:#374151;"></div>
+        </details>
+    </div>
+    <div id="courseNavReloadStatus" style="display:none;margin-top:6px;font-size:0.78rem;color:#16a34a;font-weight:600;"></div>
+</div>
+{% endif %}
+
+<div id="courseConfirmModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;padding:1rem;box-sizing:border-box;">
+    <div style="background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden;">
+        <div style="padding:1.4rem 1.5rem 1rem;text-align:center;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+            <div style="font-size:1.8rem;margin-bottom:0.4rem;">&#128218;</div>
+            <h3 style="margin:0 0 0.4rem;font-size:1.1rem;color:#111827;font-weight:700;line-height:1.35;">&iquest;Confirmas que quieres generar tu curso con esta informaci&oacute;n?</h3>
+            <p style="font-size:0.8rem;color:#6b7280;margin:0;line-height:1.45;">Una vez que confirmes, la IA empezar&aacute; a trabajar (5 minutos aproximadamente). Si necesitas ajustar algo, pulsa <strong>&laquo;No, d&eacute;jame ajustar&raquo;</strong>.</p>
+        </div>
+        <div style="padding:1rem 1.5rem;overflow-y:auto;flex:1 1 auto;min-height:0;">
+            <div style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:0.4rem;letter-spacing:0.03em;">&#128203; ESTO ES LO QUE VOY A ENTREGAR A LA IA:</div>
+            <div id="courseConfirmName" style="font-size:0.92rem;font-weight:600;color:#FA8072;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:0.75rem 0.85rem;line-height:1.55;word-break:break-word;white-space:pre-wrap;text-align:left;"></div>
+        </div>
+        <div style="padding:0.9rem 1.5rem 1.1rem;border-top:1px solid #f3f4f6;background:#fafafa;display:flex;gap:0.6rem;flex-direction:column;flex-shrink:0;">
+            <button id="courseConfirmBtn" style="background:#FA8072;color:#fff;border:none;padding:0.85rem 1.2rem;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;width:100%;">S&iacute;, generar mi curso</button>
+            <button id="courseResetBtn" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:0.7rem 1.2rem;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;width:100%;">No, d&eacute;jame ajustar</button>
+        </div>
+    </div>
+</div>
+
+{% if element_num == 4 %}
+<style>
+.audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media (max-width: 768px) { .audit-grid { grid-template-columns: 1fr; } }
+.audit-card { background: #fff; border-radius: 12px; padding: 1.5rem; border: 1px solid #e5e7eb; }
+.audit-card h3 { font-size: 1rem; color: #374151; margin-bottom: 0.75rem; }
+.audit-card p { font-size: 0.85rem; color: #6b7280; line-height: 1.5; margin-bottom: 1rem; }
+.audit-btn-green { background: #16a34a; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+.audit-btn-green:hover { opacity: 0.85; }
+.audit-btn-blue { background: #2563eb; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+.audit-btn-blue:hover { opacity: 0.85; }
+.audit-upload-btn { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; transition: background 0.2s; }
+.audit-upload-btn:hover { background: #e5e7eb; }
+.audit-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.85rem; font-family: inherit; resize: vertical; }
+.audit-status { font-size: 0.78rem; color: #16a34a; margin-top: 0.4rem; display: none; font-weight: 600; }
+</style>
+
+<div class="audit-grid">
+    <div class="audit-card">
+        <h3>Opci&oacute;n A: Auditor&iacute;a Interna</h3>
+        <p>Ejecuta el Autodiagn&oacute;stico oficial EC0301 sobre los documentos que ya generaste en los M&oacute;dulos 1, 2 y 3 de esta plataforma. La IA auditar&aacute; cada reactivo contra la evidencia real de tus archivos.</p>
+        <button class="audit-btn-green" id="btnAuditInterno" onclick="ejecutarAutodiagnostico()">&#9989; Ejecutar Autodiagn&oacute;stico de mis Documentos</button>
+    </div>
+    <div class="audit-card">
+        <h3>Opci&oacute;n B: Auditor&iacute;a de Archivos Externos</h3>
+        <p style="color:#b91c1c;font-weight:600;">Adjunta o pega TODOS tus productos (Carta Descriptiva, IECs, Manual del Instructor y Manual del Participante). Advertencia: Si omites adjuntar alg&uacute;n documento o apartado, el sistema lo marcar&aacute; autom&aacute;ticamente como NO CUMPLE (0) en el Autodiagn&oacute;stico, impactando tu porcentaje final.</p>
+        <input type="file" id="audit-file" accept=".docx,.pdf,.txt" style="display:none;" multiple>
+        <button class="audit-upload-btn" onclick="document.getElementById('audit-file').click()">&#128206; Cargar Archivo(s)</button>
+        <span class="audit-status" id="auditFileStatus"></span>
+        <textarea id="audit-text" rows="6" class="audit-textarea" placeholder="Pega el contenido completo de TODOS tus productos (Carta Descriptiva, IECs, Manuales)..."></textarea>
+        <button class="audit-btn-blue" onclick="auditarProducto()" style="margin-top:0.75rem;">&#128269; Ejecutar Autodiagn&oacute;stico Externo</button>
+    </div>
+</div>
+
+<div class="audit-card" id="datosPersonalesCard" style="margin-bottom:1.5rem;">
+    <h3 style="display:flex;align-items:center;gap:0.4rem;">&#128100; Datos personales del candidato</h3>
+    <p style="margin-bottom:0.5rem;"><strong style="color:#16a34a;">Recomendado para conformaci&oacute;n de Autodiagn&oacute;stico y Portafolio de Evidencias.</strong> Llena los datos que tengas a la mano: se colocar&aacute;n autom&aacute;ticamente en el documento. Si alg&uacute;n dato prefieres capturarlo t&uacute; mismo despu&eacute;s, marca <em>&laquo;Lo editar&eacute; manualmente&raquo;</em> y esa celda quedar&aacute; en blanco para que la edites en el Word.</p>
+    <div id="dpConsistencyWarn" style="display:none;margin-bottom:0.75rem;padding:0.55rem 0.7rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;font-size:0.8rem;color:#713f12;line-height:1.45;"></div>
+    <div id="dpFields" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;"></div>
+    <div id="curpPdfSection" style="margin-top:1rem;padding:0.75rem 0.85rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+        <div style="font-size:0.85rem;font-weight:600;color:#075985;margin-bottom:0.35rem;">&#128196; Subir PDF oficial de la CURP (opcional)</div>
+        <p style="font-size:0.78rem;color:#0c4a6e;margin:0 0 0.5rem;">Sube el PDF que descargas de gob.mx y extraeremos tu clave CURP autom&aacute;ticamente para colocarla en el campo de arriba. El PDF se conserva para tu Portafolio de Evidencias.</p>
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+            <input type="file" id="curpPdfInput" accept="application/pdf,.pdf" style="font-size:0.82rem;">
+            <button type="button" class="audit-btn-green" style="width:auto;padding:0.5rem 1rem;" onclick="subirCurpPdf()">&#11014;&#65039; Procesar PDF</button>
+            <span id="curpPdfStatus" style="display:none;font-size:0.8rem;line-height:1.4;"></span>
+        </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <button type="button" class="audit-btn-green" style="width:auto;padding:0.6rem 1.3rem;" onclick="guardarDatosPersonales()">&#128190; Guardar datos personales</button>
+        <span id="dpSaveStatus" class="audit-status" style="display:none;"></span>
+    </div>
+    <div id="fichaRegistroSection" style="margin-top:1rem;padding:0.75rem 0.85rem;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;">
+        <div style="font-size:0.85rem;font-weight:600;color:#5b21b6;margin-bottom:0.35rem;">&#128221; Ficha de Registro del Candidato (para el Portafolio de Evidencias)</div>
+        <p style="font-size:0.78rem;color:#4c1d95;margin:0 0 0.5rem;">Descarga la <strong>Ficha de Registro</strong> en Word ya llena con tus datos para revisarla, ajustar lo que necesites y cargarla en tu Portafolio de Evidencias. Inmediatamente despu&eacute;s, anexa el PDF oficial de tu CURP. Guarda primero tus datos para que la Ficha salga completa.</p>
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+            <button type="button" class="audit-btn-blue" style="width:auto;padding:0.5rem 1rem;" onclick="descargarFichaRegistro()">&#11015;&#65039; Descargar Ficha (Word)</button>
+            <button type="button" class="audit-upload-btn" style="margin-bottom:0;" onclick="descargarCurpPdf()">&#128196; Descargar PDF de CURP</button>
+            <span id="fichaStatus" style="display:none;font-size:0.8rem;line-height:1.4;"></span>
+        </div>
+    </div>
+</div>
+
+<style>
+.dp-field label.dp-lbl { display:block; font-size:0.82rem; color:#374151; font-weight:600; margin-bottom:3px; }
+.dp-field input, .dp-field select { width:100%; padding:6px 9px; border:1px solid #d1d5db; border-radius:6px; font-size:0.88rem; font-family:inherit; background:#fff; box-sizing:border-box; }
+.dp-field input:disabled, .dp-field select:disabled { background:#f3f4f6; color:#9ca3af; }
+.dp-manual { display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:#6b7280; font-weight:normal; margin-left:0.4rem; cursor:pointer; }
+.dp-hint { font-size:0.72rem; color:#9ca3af; margin-top:2px; }
+.dp-ficha-tag { font-size:0.68rem; color:#2563eb; font-weight:600; }
+@media (max-width: 640px) { #dpFields { grid-template-columns: 1fr !important; } }
+</style>
+<script>
+(function initDatosPersonales(){
+    var cont = document.getElementById('dpFields');
+    if (!cont) return;
+    var DP_FIELDS = [
+        { key:'nombre_completo', label:'Nombre completo', type:'text' },
+        { key:'curp', label:'CURP', type:'text', hint:'Capt\u00farala o sube tu PDF oficial m\u00e1s abajo para extraerla autom\u00e1ticamente.' },
+        { key:'domicilio', label:'Domicilio', type:'text' },
+        { key:'ultimo_grado', label:'\u00daltimo grado de estudios', type:'text' },
+        { key:'tel_casa', label:'Tel\u00e9fono de casa', type:'text' },
+        { key:'tel_celular', label:'Tel\u00e9fono de celular', type:'text' },
+        { key:'correo', label:'Correo electr\u00f3nico', type:'email' },
+        { key:'fecha_aplicacion', label:'Fecha de aplicaci\u00f3n', type:'date' },
+        { key:'lugar_nacimiento', label:'Lugar de nacimiento', type:'text', ficha:true },
+        { key:'nacionalidad', label:'Nacionalidad', type:'text', ficha:true },
+        { key:'genero', label:'G\u00e9nero', type:'select', options:['','Femenino','Masculino','Otro','Prefiero no decir'], ficha:true },
+        { key:'fecha_nacimiento', label:'Fecha de nacimiento', type:'date', ficha:true }
+    ];
+    window._DP_FIELDS = DP_FIELDS;
+    function esc(s){ return (s||'').replace(/[<>&"']/g, function(c){ return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    DP_FIELDS.forEach(function(f){
+        var wrap = document.createElement('div');
+        wrap.className = 'dp-field';
+        var fichaTag = f.ficha ? ' <span class="dp-ficha-tag">(para Ficha de Registro)</span>' : '';
+        var inputHtml;
+        if (f.type === 'select') {
+            var opts = f.options.map(function(o){ return '<option value="'+esc(o)+'">'+(o?esc(o):'\u2014 Selecciona \u2014')+'</option>'; }).join('');
+            inputHtml = '<select id="dp_'+f.key+'">'+opts+'</select>';
+        } else {
+            inputHtml = '<input type="'+f.type+'" id="dp_'+f.key+'">';
+        }
+        var hintHtml = f.hint ? '<div class="dp-hint">'+esc(f.hint)+'</div>' : '';
+        wrap.innerHTML =
+            '<label class="dp-lbl">'+esc(f.label)+fichaTag+
+                '<label class="dp-manual"><input type="checkbox" id="dpm_'+f.key+'" onchange="dpToggleManual(\''+f.key+'\')"> Lo editar\u00e9 manualmente</label>'+
+            '</label>'+ inputHtml + hintHtml;
+        cont.appendChild(wrap);
+    });
+    var nombre = document.getElementById('dp_nombre_completo');
+    if (nombre) { nombre.addEventListener('blur', dpCheckConsistency); nombre.addEventListener('input', dpCheckConsistency); }
+})();
+
+function dpToggleManual(key){
+    var input = document.getElementById('dp_'+key);
+    var chk = document.getElementById('dpm_'+key);
+    if (!input || !chk) return;
+    if (chk.checked){ input.value=''; input.disabled=true; }
+    else { input.disabled=false; }
+    if (key === 'nombre_completo') dpCheckConsistency();
+}
+
+function dpCheckConsistency(){
+    var warn = document.getElementById('dpConsistencyWarn');
+    var nombreEl = document.getElementById('dp_nombre_completo');
+    if (!warn || !nombreEl) return;
+    var nombre = (nombreEl.value||'').trim().toLowerCase();
+    var dis = (localStorage.getItem('pertinentia_disenador')||'').trim();
+    var ins = (localStorage.getItem('pertinentia_instructor')||'').trim();
+    if (!nombre || (!dis && !ins)) { warn.style.display='none'; return; }
+    var matches = (dis && nombre === dis.toLowerCase()) || (ins && nombre === ins.toLowerCase());
+    if (matches){ warn.style.display='none'; return; }
+    var ref = [];
+    if (dis) ref.push('Dise\u00f1ador: '+dis);
+    if (ins) ref.push('Instructor: '+ins);
+    warn.innerHTML = '\u26a0\ufe0f El nombre capturado no coincide con lo declarado en el elemento 1 ('+ref.join(' / ')+'). Si es la misma persona, verifica que est\u00e9 escrito igual; si es un candidato distinto, ign\u00f3ralo.';
+    warn.style.display = 'block';
+}
+
+function _dpFmtDate(v){
+    if (!v) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    if (m) return m[3]+'/'+m[2]+'/'+m[1];
+    return v;
+}
+
+async function guardarDatosPersonales(){
+    var status = document.getElementById('dpSaveStatus');
+    var payload = {};
+    (window._DP_FIELDS||[]).forEach(function(f){
+        var chk = document.getElementById('dpm_'+f.key);
+        var input = document.getElementById('dp_'+f.key);
+        if (chk && chk.checked){ payload[f.key]=''; return; }
+        var v = (input && input.value || '').trim();
+        if (f.type === 'date') v = _dpFmtDate(v);
+        payload[f.key] = v;
+    });
+    if (status){ status.style.display='inline'; status.style.color='#d97706'; status.textContent='Guardando...'; }
+    try {
+        var r = await fetch('/api/save_datos_personales', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        var d = await r.json();
+        if (d && d.success){
+            if (status){ status.style.color='#16a34a'; status.textContent='Datos guardados ('+(d.filled||0)+' campo(s)). Se usar\u00e1n al generar el Autodiagn\u00f3stico.'; }
+        } else {
+            if (status){ status.style.color='#dc2626'; status.textContent='No se pudieron guardar los datos.'; }
+        }
+    } catch(e){
+        if (status){ status.style.color='#dc2626'; status.textContent='Error de conexi\u00f3n al guardar.'; }
+    }
+}
+
+async function subirCurpPdf(){
+    var inp = document.getElementById('curpPdfInput');
+    var status = document.getElementById('curpPdfStatus');
+    if (!inp || !inp.files || !inp.files.length){
+        if (status){ status.style.display='inline'; status.style.color='#dc2626'; status.textContent='Selecciona un archivo PDF.'; }
+        return;
+    }
+    var fd = new FormData();
+    fd.append('file', inp.files[0]);
+    if (status){ status.style.display='inline'; status.style.color='#d97706'; status.textContent='Procesando PDF...'; }
+    try {
+        var r = await fetch('/api/curp_pdf', { method:'POST', body: fd });
+        var d = await r.json();
+        if (d && d.success){
+            if (d.curp){
+                var curpEl = document.getElementById('dp_curp');
+                var chk = document.getElementById('dpm_curp');
+                if (chk && chk.checked){ chk.checked=false; dpToggleManual('curp'); }
+                if (curpEl){ curpEl.disabled=false; curpEl.value=d.curp; }
+                if (status){ status.style.color='#16a34a'; status.textContent='CURP detectada: '+d.curp+'. Revisa que sea correcta y guarda tus datos.'; }
+            } else {
+                if (status){ status.style.color='#d97706'; status.textContent=(d.message||'No pudimos leer la CURP. Capt\u00farala manualmente.'); }
+            }
+        } else {
+            if (status){ status.style.color='#dc2626'; status.textContent=(d && d.error) || 'No se pudo procesar el PDF.'; }
+        }
+    } catch(e){
+        if (status){ status.style.color='#dc2626'; status.textContent='Error de conexi\u00f3n al procesar el PDF.'; }
+    }
+}
+
+async function descargarFichaRegistro(){
+    var status = document.getElementById('fichaStatus');
+    if (status){ status.style.display='inline'; status.style.color='#d97706'; status.textContent='Generando Ficha...'; }
+    try {
+        await guardarDatosPersonales();
+        var r = await fetch('/api/descargar_ficha_registro', { method:'GET' });
+        if (!r.ok){
+            var err = {}; try { err = await r.json(); } catch(e){}
+            if (status){ status.style.color='#dc2626'; status.textContent=(err && err.error) || 'No se pudo generar la Ficha.'; }
+            return;
+        }
+        var blob = await r.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'Ficha_de_Registro_del_Candidato.docx';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        if (status){ status.style.color='#16a34a'; status.textContent='Ficha descargada. Rev\u00edsala y c\u00e1rgala a tu Portafolio.'; }
+    } catch(e){
+        if (status){ status.style.color='#dc2626'; status.textContent='Error de conexi\u00f3n al generar la Ficha.'; }
+    }
+}
+
+async function descargarCurpPdf(){
+    var status = document.getElementById('fichaStatus');
+    if (status){ status.style.display='inline'; status.style.color='#d97706'; status.textContent='Buscando tu PDF de CURP...'; }
+    try {
+        var r = await fetch('/api/descargar_curp_pdf', { method:'GET' });
+        if (!r.ok){
+            var err = {}; try { err = await r.json(); } catch(e){}
+            if (status){ status.style.color='#dc2626'; status.textContent=(err && err.error) || 'No tienes un PDF de CURP guardado. S\u00fabelo arriba primero.'; }
+            return;
+        }
+        var blob = await r.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'CURP.pdf';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        if (status){ status.style.color='#16a34a'; status.textContent='PDF de CURP descargado.'; }
+    } catch(e){
+        if (status){ status.style.color='#dc2626'; status.textContent='Error de conexi\u00f3n al descargar el PDF.'; }
+    }
+}
+</script>
+{% endif %}
+
+<div class="card chat-container">
+    <div class="chat-messages" id="chatMessages">
+        {% if not current_user.is_authenticated and element_num == 1 %}
+        <div class="msg system" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-left:4px solid #FA8072;padding:1rem 1.2rem;margin-bottom:0.75rem;border-radius:8px;font-size:0.95rem;line-height:1.6;">
+            &#128075; <strong>&iexcl;Bienvenido!</strong> Tienes <strong>3 turnos de chat gratuitos</strong> para generar tu Carta Descriptiva alineada al est&aacute;ndar EC0301. Dime el tema de tu curso y cualquier consideraci&oacute;n especial para empezar.
+        </div>
+        {% endif %}
+        {% if element_num == 1 %}
+        <div class="msg-info-card system" id="masterDocTip" style="position:relative;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-left:4px solid #2563eb;padding:1rem 1.2rem;margin-bottom:0.75rem;border-radius:8px;font-size:0.9rem;line-height:1.55;">
+            <div style="padding-right:24px;">
+                &#128161; <strong>Recomendaci&oacute;n:</strong> Antes de armar tus productos, ay&uacute;dame con estos datos. Los usar&eacute; tal cual los escribas en TODOS tus productos (Carta Descriptiva, Instrumentos, Manuales y Lista de Verificaci&oacute;n). Si omites alguno, deber&aacute;s llenarlo manualmente despu&eacute;s en cada formato:
+            </div>
+            <form id="paso0PreForm" onsubmit="return submitPaso0PreForm(event);" style="margin-top:0.85rem;display:flex;flex-direction:column;gap:0.55rem;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>1.</strong> Nombre del curso <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(elige el nombre exacto: ser&aacute; la base principal con la que estructuraremos todo el contenido &mdash; m&aacute;x. 100 caracteres)</span></span>
+                    <input type="text" id="paso0_nombre_curso" maxlength="100" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>2.</strong> Dise&ntilde;ador del curso</span>
+                    <input type="text" id="paso0_disenador" maxlength="200" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>3.</strong> Instructor que lo impartir&aacute;</span>
+                    <input type="text" id="paso0_instructor" maxlength="200" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>4.</strong> Lugar donde se impartir&aacute; (ciudad, sede o modalidad en l&iacute;nea)</span>
+                    <input type="text" id="paso0_lugar" maxlength="200" placeholder="ej: Ciudad de M&eacute;xico, Sala A / En l&iacute;nea v&iacute;a Zoom" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>5.</strong> Periodo de impartici&oacute;n (fecha y horario)</span>
+                    <input type="text" id="paso0_periodo" maxlength="200" placeholder="ej: 15 y 16 de junio 2026, 9:00&ndash;14:00" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>6.</strong> Duraci&oacute;n total del curso (en horas o minutos)</span>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="number" id="paso0_duracion_horas" min="0" max="500" placeholder="Horas" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;width:90px;">
+                        <span style="font-size:0.85rem;color:#374151;">h</span>
+                        <input type="number" id="paso0_duracion_minutos" min="0" max="59" placeholder="Min" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;width:80px;">
+                        <span style="font-size:0.85rem;color:#374151;">min</span>
+                    </div>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>7.</strong> N&uacute;mero de participantes <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(m&iacute;nimo 4 sugerido para fines de certificaci&oacute;n; puedes indicar m&aacute;s)</span></span>
+                    <input type="number" id="paso0_participantes" min="1" max="999" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;width:120px;">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>8.</strong> Documentos de referencia <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(opcional &mdash; PDF, DOCX, TXT, XLSX; hasta 3 archivos, l&iacute;mite de tama&ntilde;o seg&uacute;n tu plan)</span></span>
+                    <input type="file" id="paso0_archivos" accept=".pdf,.docx,.txt,.xlsx" multiple style="padding:5px 4px;border:1px dashed #93c5fd;border-radius:6px;font-size:0.82rem;background:#fff;">
+                    <span id="paso0_archivos_status" style="font-size:0.76rem;color:#6b7280;"></span>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>9.</strong> Consideraciones relevantes <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(opcional &mdash; instrucciones que la IA debe cumplir, ej: &laquo;De los archivos adjuntos en&oacute;cate en el cap&iacute;tulo 2&raquo;)</span></span>
+                    <textarea id="paso0_consideraciones" maxlength="2000" rows="3" placeholder="Ej.: De los archivos que adjunt&eacute; en&oacute;cate en la unidad 3 y respeta los tiempos del temario." style="padding:7px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;font-family:inherit;line-height:1.4;resize:vertical;"></textarea>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>10.</strong> Logotipo de tu organizaci&oacute;n <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(opcional &mdash; PNG o JPG, m&aacute;x. 5 MB; aparecer&aacute; en todos tus entregables: carta descriptiva, contrato, evaluaciones, listas, manuales y presentaciones)</span></span>
+                    <input type="file" id="paso0_logo" accept=".png,.jpg,.jpeg" style="padding:5px 4px;border:1px dashed #93c5fd;border-radius:6px;font-size:0.82rem;background:#fff;">
+                    <span id="paso0_logo_status" style="font-size:0.76rem;color:#6b7280;"></span>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                    <span><strong>11.</strong> Contexto institucional <span style="color:#6b7280;font-weight:normal;font-size:0.78rem;">(ajusta lenguaje y evaluaciones a los requisitos de tu institución)</span></span>
+                    <select id="paso0_contexto" onchange="document.getElementById('paso0_institucion_wrap').style.display = (this.value==='institucion_educativa') ? 'block' : 'none';" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                        <option value="centro_evaluador">Centro Evaluador (CONOCER)</option>
+                        <option value="institucion_educativa">Institución Educativa</option>
+                    </select>
+                </label>
+                <div id="paso0_institucion_wrap" style="display:none;">
+                    <label style="display:flex;flex-direction:column;gap:3px;font-size:0.85rem;color:#1e3a8a;">
+                        <span>Institución</span>
+                        <select id="paso0_institucion" style="padding:6px 9px;border:1px solid #93c5fd;border-radius:6px;font-size:0.9rem;background:#fff;">
+                            <option value="uam">Universidad Autónoma Metropolitana (UAM)</option>
+                        </select>
+                    </label>
+                </div>
+                <div style="margin-top:0.4rem;padding:0.55rem 0.7rem;background:#fef9c3;border:1px solid #fde68a;border-radius:6px;font-size:0.78rem;color:#713f12;line-height:1.5;">
+                    &#9888;&#65039; <strong>Notas:</strong>
+                    <ul style="margin:4px 0 0 1.1rem;padding:0;">
+                        <li>Si alg&uacute;n dato no lo tienes ahora, d&eacute;jalo en blanco; podr&aacute;s editarlo despu&eacute;s en el Word.</li>
+                        <li>Despu&eacute;s de "Vista previa" podr&aacute;s revisar y corregir errores de dedo antes de enviarlo al chat.</li>
+                    </ul>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-top:0.3rem;">
+                    <button type="submit" style="background:#2563eb;color:#fff;border:0;padding:7px 14px;border-radius:6px;font-size:0.88rem;font-weight:600;cursor:pointer;">Vista previa &amp; revisar</button>
+                    <span style="color:#6b7280;font-size:0.78rem;">Tambi&eacute;n puedes escribirlos directamente en el chat &mdash; la IA los entender&aacute; igual.</span>
+                </div>
+            </form>
+            <div id="paso0PreviewBox" style="display:none;margin-top:0.85rem;padding:0.75rem 0.9rem;background:#fff;border:1px solid #bfdbfe;border-radius:8px;">
+                <div style="font-size:0.82rem;color:#1e3a8a;font-weight:600;margin-bottom:0.4rem;">&#128221; Revisa y corrige antes de enviar:</div>
+                <textarea id="paso0PreviewText" rows="9" style="width:100%;padding:8px 10px;border:1px solid #93c5fd;border-radius:6px;font-size:0.88rem;font-family:inherit;line-height:1.45;resize:vertical;background:#fff;"></textarea>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.55rem;">
+                    <button type="button" onclick="confirmPaso0Preview()" style="background:#16a34a;color:#fff;border:0;padding:7px 14px;border-radius:6px;font-size:0.88rem;font-weight:600;cursor:pointer;">&#10004; Enviar al chat</button>
+                    <button type="button" onclick="cancelPaso0Preview()" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:7px 14px;border-radius:6px;font-size:0.88rem;font-weight:600;cursor:pointer;">Volver a editar</button>
+                </div>
+            </div>
+            <button onclick="this.parentElement.style.display='none'" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#9ca3af;" aria-label="Cerrar">&times;</button>
+        </div>
+        <script>
+        (function animarPlaceholderNombreCurso(){
+            var el = document.getElementById('paso0_nombre_curso');
+            if (!el) return;
+            var ejemplos = [
+                'Personas y familia',
+                'Personas y familia enfocado al Derecho Civil y Familiar',
+                'Excel intermedio para administraci\u00f3n',
+                'Liderazgo y trabajo en equipo de alto desempe\u00f1o'
+            ];
+            var ei = 0, ci = 0, borrando = false;
+            function tick(){
+                if (document.activeElement === el || (el.value && el.value.length)) {
+                    el.setAttribute('placeholder', '');
+                    return setTimeout(tick, 800);
+                }
+                var palabra = ejemplos[ei];
+                if (!borrando) {
+                    ci++;
+                    el.setAttribute('placeholder', palabra.slice(0, ci));
+                    if (ci >= palabra.length) { borrando = true; return setTimeout(tick, 1500); }
+                    return setTimeout(tick, 55);
+                } else {
+                    ci--;
+                    el.setAttribute('placeholder', palabra.slice(0, Math.max(0, ci)));
+                    if (ci <= 0) { borrando = false; ei = (ei + 1) % ejemplos.length; return setTimeout(tick, 350); }
+                    return setTimeout(tick, 28);
+                }
+            }
+            el.addEventListener('focus', function(){ el.setAttribute('placeholder', ''); });
+            el.addEventListener('blur', function(){ if (!el.value) { ci = 0; borrando = false; } });
+            setTimeout(tick, 400);
+        })();
+        function submitPaso0PreForm(ev) {
+            ev.preventDefault();
+            var fields = [
+                { id: 'paso0_nombre_curso',  label: 'Nombre del curso/UEA' },
+                { id: 'paso0_disenador',     label: 'Dise\u00f1ador del curso' },
+                { id: 'paso0_instructor',    label: 'Instructor que lo impartir\u00e1' },
+                { id: 'paso0_lugar',         label: 'Lugar donde se impartir\u00e1' },
+                { id: 'paso0_periodo',       label: 'Periodo de impartici\u00f3n' },
+                { id: 'paso0_duracion',      label: 'Duraci\u00f3n total del curso', special: 'duracion' },
+                { id: 'paso0_participantes', label: 'N\u00famero de participantes' }
+            ];
+            var lines = [];
+            var n = 1;
+            for (var i = 0; i < fields.length; i++) {
+                var f = fields[i];
+                var v;
+                if (f.special === 'duracion') {
+                    var hEl = document.getElementById('paso0_duracion_horas');
+                    var mEl = document.getElementById('paso0_duracion_minutos');
+                    var hVal = parseInt((hEl && hEl.value) || '0', 10) || 0;
+                    var mVal = parseInt((mEl && mEl.value) || '0', 10) || 0;
+                    v = (hVal > 0 || mVal > 0) ? (hVal + ' horas ' + mVal + ' minutos') : '';
+                } else {
+                    var el = document.getElementById(f.id);
+                    v = (el && el.value || '').trim();
+                }
+                if (v) {
+                    lines.push(n + '. ' + fields[i].label + ': ' + v);
+                    n++;
+                }
+            }
+            if (!lines.length) {
+                alert('Llena al menos un campo, o escribe tus datos directamente en el chat.');
+                return false;
+            }
+            try {
+                var _dis = (document.getElementById('paso0_disenador')||{}).value || '';
+                var _ins = (document.getElementById('paso0_instructor')||{}).value || '';
+                if (_dis.trim()) localStorage.setItem('pertinentia_disenador', _dis.trim());
+                if (_ins.trim()) localStorage.setItem('pertinentia_instructor', _ins.trim());
+            } catch(e){}
+            var preview = document.getElementById('paso0PreviewText');
+            var box = document.getElementById('paso0PreviewBox');
+            var form = document.getElementById('paso0PreForm');
+            if (preview && box) {
+                preview.value = lines.join('\n');
+                box.style.display = 'block';
+                if (form) form.style.display = 'none';
+                preview.focus();
+            }
+            return false;
+        }
+        async function confirmPaso0Preview() {
+            var preview = document.getElementById('paso0PreviewText');
+            var input = document.getElementById('userInput');
+            var txt = (preview && preview.value || '').trim();
+            if (!txt) { alert('El mensaje est\u00e1 vac\u00edo.'); return; }
+            var consid = (document.getElementById('paso0_consideraciones') || {}).value || '';
+            window._paso0Considerations = consid.trim().slice(0, 2000);
+            var contextoEl = document.getElementById('paso0_contexto');
+            var institucionEl = document.getElementById('paso0_institucion');
+            window._paso0Contexto = (contextoEl && contextoEl.value === 'institucion_educativa' && institucionEl) ? institucionEl.value : '';
+            var fileInput = document.getElementById('paso0_archivos');
+            var statusEl = document.getElementById('paso0_archivos_status');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                if (fileInput.files.length > 3) {
+                    alert('M\u00e1ximo 3 archivos.');
+                    return;
+                }
+                var fd = new FormData();
+                fd.append('element_num', ELEMENT_NUM);
+                for (var i = 0; i < fileInput.files.length; i++) {
+                    if (fileInput.files[i].size > 10 * 1024 * 1024) {
+                        alert('El archivo "' + fileInput.files[i].name.replace(/[<>&"']/g,'') + '" excede 10 MB.');
+                        return;
+                    }
+                    fd.append('files', fileInput.files[i]);
+                }
+                if (statusEl) { statusEl.textContent = 'Subiendo archivos...'; statusEl.style.color = '#d97706'; }
+                try {
+                    var r = await fetch('/api/upload_specs', { method: 'POST', body: fd });
+                    var jd = await r.json();
+                    if (!jd.success) {
+                        if (statusEl) { statusEl.textContent = jd.error || 'Error al subir archivos'; statusEl.style.color = '#dc2626'; }
+                        alert(jd.error || 'No se pudieron subir los archivos.');
+                        return;
+                    }
+                    if (statusEl) { statusEl.textContent = (jd.filenames || []).length + ' archivo(s) cargado(s).'; statusEl.style.color = '#16a34a'; }
+                    if (jd.inclusive_language_warning) {
+                        alert(jd.inclusive_language_warning);
+                    }
+                    var bar = document.getElementById('specsBar');
+                    var list = document.getElementById('specsFileList');
+                    if (bar && list) { list.textContent = (jd.filenames || []).join(', '); bar.style.display = 'flex'; }
+                } catch (e) {
+                    if (statusEl) { statusEl.textContent = 'Error de conexi\u00f3n'; statusEl.style.color = '#dc2626'; }
+                    alert('No se pudieron subir los archivos (conexi\u00f3n).');
+                    return;
+                }
+            }
+            var logoInput = document.getElementById('paso0_logo');
+            var logoStatus = document.getElementById('paso0_logo_status');
+            if (logoInput && logoInput.files && logoInput.files.length > 0) {
+                var lf = logoInput.files[0];
+                if (lf.size > 5 * 1024 * 1024) {
+                    alert('El logotipo "' + lf.name.replace(/[<>&"']/g,'') + '" excede 5 MB.');
+                    return;
+                }
+                var lfd = new FormData();
+                lfd.append('logo', lf);
+                if (logoStatus) { logoStatus.textContent = 'Subiendo logotipo...'; logoStatus.style.color = '#d97706'; }
+                try {
+                    var lr = await fetch('/api/upload_course_logo', { method: 'POST', body: lfd });
+                    var ljd = await lr.json();
+                    if (!ljd.success) {
+                        if (logoStatus) { logoStatus.textContent = ljd.error || 'Error al subir el logotipo'; logoStatus.style.color = '#dc2626'; }
+                        alert(ljd.error || 'No se pudo subir el logotipo.');
+                        return;
+                    }
+                    if (logoStatus) { logoStatus.textContent = 'Logotipo cargado.'; logoStatus.style.color = '#16a34a'; }
+                } catch (e) {
+                    if (logoStatus) { logoStatus.textContent = 'Error de conexi\u00f3n'; logoStatus.style.color = '#dc2626'; }
+                    alert('No se pudo subir el logotipo (conexi\u00f3n).');
+                    return;
+                }
+            }
+            if (input) {
+                input.value = txt;
+                var tip = document.getElementById('masterDocTip');
+                if (tip) tip.style.display = 'none';
+                if (typeof sendMessage === 'function') sendMessage();
+            }
+        }
+        function cancelPaso0Preview() {
+            var box = document.getElementById('paso0PreviewBox');
+            var form = document.getElementById('paso0PreForm');
+            if (box) box.style.display = 'none';
+            if (form) form.style.display = 'flex';
+        }
+        </script>
+        {% endif %}
+        <div class="msg system" id="welcomeMsg"
+             data-default="{{ welcome_message }}"
+             data-ready="{{ welcome_message_ready }}"
+             style="display:none;">
+            {{ welcome_message }}
+        </div>
+    </div>
+    {% if show_demo_precargado %}
+    <div id="demoPrecargadoBanner" style="margin:0.5rem auto 0.6rem;max-width:800px;padding:0.65rem 0.9rem;background:linear-gradient(90deg,#fff7ed 0%,#fef3c7 100%);border:1px solid #fcd34d;border-radius:10px;display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;">
+        <span style="font-size:1.4rem;line-height:1;">🎁</span>
+        <div style="flex:1;min-width:200px;">
+            <div style="font-weight:700;color:#92400e;font-size:0.92rem;">¿Es tu primera vez? Genera un demo en 30 segundos</div>
+            <div style="color:#78350f;font-size:0.78rem;">Te mostramos cómo se ve una Carta Descriptiva completa con un tema de ejemplo.</div>
+        </div>
+        <button id="demoPrecargadoBtn" onclick="lanzarDemoPrecargado()" style="background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;font-weight:700;font-size:0.85rem;cursor:pointer;white-space:nowrap;">▶ Generar demo: Manejo Defensivo</button>
+    </div>
+    <script>
+    function lanzarDemoPrecargado() {
+        var btn = document.getElementById('demoPrecargadoBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; btn.style.opacity = '0.7'; }
+        var banner = document.getElementById('demoPrecargadoBanner');
+        if (banner) { banner.style.display = 'none'; }
+        // Marcar la CourseSession activa como is_demo=True ANTES de la prompt.
+        // Identificación por bandera explícita (no por texto del topic) — esto
+        // permite que reset_active_course_state() la purgue automáticamente
+        // tras un upgrade FREE→PRO. Best-effort: si falla, continuamos igual.
+        fetch('/api/demo/mark_active', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: '{}'
+        }).catch(function(){}).finally(function(){
+            var input = document.getElementById('userInput');
+            if (input) {
+                input.value = 'Manejo Defensivo';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (typeof sendMessage === 'function') { sendMessage(); }
+        });
+    }
+    </script>
+    {% endif %}
+    {% if element_num != 4 and quick_actions %}
+    <div class="quick-actions-grid" id="quickActions" style="padding:0.4rem 0.75rem;">
+        {% set qa_icons = {
+            'Carta Descriptiva Completa': '📄',
+            'Contrato de Aprendizaje': '🤝',
+            'Lista de Verificación': '📋',
+            'Evaluación Diagnóstica': '🩺',
+            'Guía de Observación': '👁️',
+            'Lista de Cotejo': '✅',
+            'Evaluación Sumativa': '📊',
+            'Evaluación de Satisfacción': '⭐',
+            'Hojas de Respuestas': '📝',
+            'Evaluación Mediadora': '🤝',
+            'Manual del Instructor': '🎓',
+            'Manual del Participante': '👤',
+            'Presentación Ejecutiva': '📊',
+            'Presentación de Facilitación': '📽️'
+        } %}
+        {% for qa in quick_actions %}
+        <button class="quick-action-card" data-label="{{ qa.label }}" data-prompt="{{ qa.prompt }}"{% if qa.tooltip %} title="{{ qa.tooltip }}"{% endif %} onclick="handleQuickAction(this)">
+            <span class="qa-icon">{{ qa_icons.get(qa.label, '▶️') }}</span>
+            {{ qa.label }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if element_num == 1 and current_user.is_authenticated %}
+    <a href="/diagnostico-mi-clase" style="display:block;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #10b981;border-radius:10px;padding:0.7rem 1rem;margin:0.8rem 0.75rem 0.2rem;text-decoration:none;color:#065f46;font-size:0.9rem;line-height:1.45;">
+        <strong>🎯 Ya tienes tu Carta. ¿Y tu impartición?</strong> Diagnostica tu clase contra el <strong>EC0217.01</strong> con la transcripción de tu clase — pre-dictamen IA gratis.
+    </a>
+    {% endif %}
+    <div class="nav-sequential" id="navSequential" style="display:none;gap:0.6rem;flex-wrap:wrap;justify-content:center;align-items:center;">
+        <a id="navPrevBtn" href="#" class="nav-seq-btn" style="display:none;background:#fff;color:#2d2d2d !important;border:2px solid #2d2d2d;animation:none;"></a>
+        <a id="navNextBtn" href="#" class="nav-seq-btn"></a>
+    </div>
+    <div class="loading loading-prominent" id="loadingIndicator">
+        <div class="spinner-prominent"></div>
+        <span id="loadingText">La IA est&aacute; generando tu contenido... puede tardar <strong>varios minutos (hasta ~5)</strong>. No cierres esta ventana.</span>
+    </div>
+    <style>
+        .loading-prominent { margin:0.8rem auto !important; max-width:720px; padding:1rem 1.2rem; background:linear-gradient(135deg,#fff7ed,#fef3c7); border:2px solid #f59e0b; border-radius:12px; box-shadow:0 4px 14px rgba(245,158,11,0.18); gap:0.85rem !important; color:#78350f !important; font-size:0.95rem !important; font-weight:600; line-height:1.4; }
+        .spinner-prominent { width:28px; height:28px; border:3px solid #fde68a; border-top-color:#d97706; border-radius:50%; animation:spin 0.9s linear infinite; flex-shrink:0; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</div>
+
+{% if element_num != 4 %}
+<div id="specsBar" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.6rem 1rem;margin:0 auto 0.5rem;max-width:800px;font-size:0.82rem;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+    <span style="color:#1d4ed8;font-weight:600;">&#128206; Archivos de referencia cargados:</span>
+    <span id="specsFileList" style="color:#374151;"></span>
+    <button onclick="clearSpecs()" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:0.85rem;font-weight:600;margin-left:auto;" title="Quitar archivos">&times; Quitar</button>
+</div>
+<div class="chat-fixed-bottom" id="chatFixedBottom">
+    <div class="chat-fixed-inner" style="position:relative;">
+        <button id="specsUploadBtn" onclick="document.getElementById('specsFileInput').click()" title="Adjunta tu temario, syllabus o referencias (PDF, DOCX, TXT, XLSX) para que la IA los considere" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:4px 6px;color:#6b7280;flex-shrink:0;transition:color 0.2s;" onmouseover="this.style.color='#FA8072'" onmouseout="this.style.color='#6b7280'">&#128206;</button>
+        <input type="file" id="specsFileInput" accept=".pdf,.docx,.txt,.xlsx" multiple style="display:none;" onchange="handleSpecsUpload(this)">
+        <textarea id="userInput" placeholder="{{ module_placeholder }}" rows="1"></textarea>
+        <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+    </div>
+    <div id="specsUploadStatus" style="display:none;text-align:center;font-size:0.78rem;padding:4px 0;color:#d97706;"></div>
+</div>
+{% else %}
+<textarea id="userInput" style="display:none;"></textarea>
+<button id="sendBtn" style="display:none;"></button>
+{% endif %}
+
+<div class="card download-section" id="docsSection" style="display:none;">
+    <h2>Documentos Generados</h2>
+    <ul class="download-list" id="docsList"></ul>
+</div>
+
+<div class="paywall-modal" id="paywallModal" style="display:none;">
+    <div class="paywall-modal-content">
+        <div class="paywall-icon">&#128274;</div>
+        <h2>Contenido Exclusivo</h2>
+        <p>Para descargar documentos y acceder a todas las funciones, elige un plan.</p>
+        <a href="/precios" class="paywall-btn paywall-btn-pro" style="display:inline-block;margin-bottom:1rem;">Ver Planes y Precios</a>
+        {% if current_user.is_authenticated and current_user.tier == 'FREE' %}
+        <p style="font-size:0.82rem;color:#6b7280;margin-top:0.5rem;">o compra solo este elemento:</p>
+        <a href="{{ stripe_links['ALACARTE_E' ~ element_num] }}?client_reference_id={{ current_user.id }}" class="paywall-btn" style="display:inline-block;background:#fff;color:#FA8072;border:2px solid #FA8072;font-size:0.85rem;margin-bottom:0.75rem;" target="_blank" rel="noopener">Comprar Elemento {{ element_num }} a la Carta</a>
+        {% endif %}
+        <br>
+        <button class="paywall-close" onclick="closePaywall()">Cerrar</button>
+    </div>
+</div>
+
+<div class="paywall-modal" id="anonProgressModal" style="display:none;">
+    <div class="paywall-modal-content" style="text-align:center;max-width:480px;">
+        <div style="font-size:2.6rem;margin-bottom:0.5rem;">&#128221;</div>
+        <h2 style="margin-bottom:0.5rem;color:#1f2937;">Sigue conversando para terminar tu curso</h2>
+        <p style="color:#4b5563;font-size:0.95rem;line-height:1.6;margin-bottom:1rem;">A&uacute;n falta informaci&oacute;n para generar tu documento. Comp&aacute;rtela en el chat y, en cuanto est&eacute; listo, lo guardamos para ti.</p>
+        <p style="color:#6b7280;font-size:0.88rem;line-height:1.5;margin-bottom:1.3rem;">Reg&iacute;strate <strong>GRATIS</strong> ahora para no perder tu progreso ni tu conversaci&oacute;n.</p>
+        <a href="/registro" style="display:inline-block;background:linear-gradient(135deg,#FA8072,#e96050);color:#fff;padding:0.85rem 2.2rem;border-radius:10px;font-weight:700;font-size:1.05rem;text-decoration:none;box-shadow:0 4px 14px rgba(250,128,114,0.4);">Crear cuenta para continuar &rarr;</a>
+        <p style="margin-top:0.75rem;font-size:0.82rem;color:#9ca3af;">&iquest;Ya tienes cuenta? <a href="/login" style="color:#FA8072;font-weight:600;">Inicia sesi&oacute;n</a></p>
+        <button class="paywall-close" onclick="document.getElementById('anonProgressModal').style.display='none'" style="margin-top:0.5rem;">Seguir conversando</button>
+    </div>
+</div>
+
+<div class="paywall-modal" id="anonConversionModal" style="display:none;">
+    <div class="paywall-modal-content" style="text-align:center;max-width:480px;">
+        <div style="font-size:3rem;margin-bottom:0.5rem;">&#9989;</div>
+        <h2 style="margin-bottom:0.5rem;color:#1f2937;" id="anonModalTitle">&iexcl;Tu documento est&aacute; listo!</h2>
+        <div id="anonModalFileInfo" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;display:none;">
+            <span style="font-size:1.4rem;vertical-align:middle;">&#128196;</span>
+            <span id="anonModalFileName" style="font-weight:600;color:#374151;font-size:0.9rem;vertical-align:middle;margin-left:0.3rem;"></span>
+        </div>
+        <p style="color:#4b5563;font-size:0.95rem;line-height:1.6;margin-bottom:1.5rem;">Reg&iacute;strate <strong>GRATIS</strong> en 30 segundos para descargar tu documento, guardar tu progreso y seguir creando productos EC0301.</p>
+        <a href="/registro" id="anonModalRegisterBtn" style="display:inline-block;background:linear-gradient(135deg,#FA8072,#e96050);color:#fff;padding:0.85rem 2.2rem;border-radius:10px;font-weight:700;font-size:1.05rem;text-decoration:none;box-shadow:0 4px 14px rgba(250,128,114,0.4);transition:transform 0.2s,box-shadow 0.2s;">Crear Cuenta Gratis &rarr;</a>
+        <p style="margin-top:0.75rem;font-size:0.82rem;color:#9ca3af;">&iquest;Ya tienes cuenta? <a href="/login" style="color:#FA8072;font-weight:600;">Inicia sesi&oacute;n</a></p>
+        <button class="paywall-close" onclick="document.getElementById('anonConversionModal').style.display='none'" style="margin-top:0.5rem;">Seguir explorando</button>
+    </div>
+</div>
+
+<div class="paywall-modal" id="headerPersonalizeModal" style="display:none;">
+    <div class="paywall-modal-content" style="text-align:left;max-width:500px;">
+        <div style="font-size:2rem;text-align:center;margin-bottom:0.5rem;">&#128221;</div>
+        <h2 style="margin-bottom:0.3rem;color:#1f2937;text-align:center;font-size:1.15rem;">Personaliza tu Encabezado</h2>
+        <p style="color:#6b7280;font-size:0.85rem;text-align:center;margin-bottom:1rem;">Completa los datos para tu documento. Tambi&eacute;n podr&aacute;s editarlos directamente en el Word.</p>
+        <input type="hidden" id="headerPendingFile" value="">
+        <div style="margin-bottom:0.65rem;">
+            <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:2px;">Nombre del Instructor</label>
+            <input type="text" id="headerInstructor" placeholder="Ej: Lic. Mar&iacute;a L&oacute;pez" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;" value="{% if current_user.is_authenticated %}{{ current_user.full_name }}{% endif %}">
+        </div>
+        <div style="margin-bottom:0.65rem;">
+            <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:2px;">Lugar / Sede</label>
+            <input type="text" id="headerLugar" placeholder="Ej: Sala de Capacitaci&oacute;n, CDMX" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+        </div>
+        <div style="display:flex;gap:0.75rem;">
+            <div style="flex:1;margin-bottom:0.65rem;">
+                <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:2px;">Fecha del Curso</label>
+                <input type="date" id="headerFecha" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <div style="flex:1;margin-bottom:0.65rem;">
+                <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:2px;">Horario</label>
+                <input type="text" id="headerHorario" placeholder="Ej: 9:00 a 14:00" style="width:100%;padding:0.5rem 0.7rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;">
+            </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:0.75rem;justify-content:center;">
+            <button onclick="submitHeaderAndDownload()" style="background:linear-gradient(135deg,#FA8072,#e96050);color:#fff;padding:0.65rem 1.5rem;border:none;border-radius:8px;font-weight:700;font-size:0.92rem;cursor:pointer;">Personalizar y Descargar</button>
+            <button onclick="skipHeaderAndDownload()" style="background:#fff;color:#6b7280;padding:0.65rem 1.5rem;border:1px solid #d1d5db;border-radius:8px;font-weight:600;font-size:0.92rem;cursor:pointer;">Quiz&aacute; despu&eacute;s</button>
+        </div>
+    </div>
+</div>
+
+{% if show_elem_ads %}
+<div id="elem-ad-bottom-wrap">
+    <div class="elem-ad-card" id="elem-ad-card">
+        <div class="elem-ad-track" id="elem-ad-track" style="width:{{ ads|length * 100 }}%;">
+            {% for ad in ads %}
+            <a href="/api/ads/click/{{ ad.id }}" target="_blank" rel="noopener" class="elem-ad-slide" style="flex:0 0 {{ (100 / ads|length)|round(2) }}%;">
+                {% if ad.image_url %}
+                <div class="ad-img-wrap"><img src="{{ ad.image_url }}" alt="{{ ad.title }}"></div>
+                {% endif %}
+                <div class="ad-text-wrap">
+                    <div class="ad-title">{{ ad.title }}</div>
+                    {% if ad.description %}<div class="ad-desc">{{ ad.description }}</div>{% endif %}
+                    <span class="elem-ad-badge">Publicidad</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% if ads|length > 1 %}
+        <div class="elem-ad-dots" id="elem-ad-dots">
+            {% for ad in ads %}
+            <span style="background:{{ '#FA8072' if loop.first else 'rgba(0,0,0,0.15)' }};" data-idx="{{ loop.index0 }}"></span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+(function(){
+    var track = document.getElementById('elem-ad-track');
+    var card = document.getElementById('elem-ad-card');
+    if (!track || !card) return;
+    var total = {{ ads|length }};
+    var adIds = [{% for ad in ads %}'{{ ad.id }}'{% if not loop.last %},{% endif %}{% endfor %}];
+    var sent = {};
+    function fireImpr(id){ if (sent[id]) return; sent[id] = true; fetch('/api/ads/impression/' + id, {method:'POST'}).catch(function(){}); }
+    var seenObs = false;
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(entries){
+            entries.forEach(function(e){ if (e.isIntersecting && !seenObs){ seenObs = true; fireImpr(adIds[0]); } });
+        }, { threshold: 0.4 });
+        io.observe(card);
+    } else { fireImpr(adIds[0]); }
+    if (total > 1) {
+        var dots = document.getElementById('elem-ad-dots');
+        var allDots = dots ? dots.querySelectorAll('span') : [];
+        var cur = 0;
+        function go(idx){
+            cur = idx % total;
+            track.style.transform = 'translateX(-' + (cur * (100 / total)) + '%)';
+            allDots.forEach(function(d, i){ d.style.background = i === cur ? '#FA8072' : 'rgba(0,0,0,0.15)'; });
+            if (seenObs) fireImpr(adIds[cur]);
+        }
+        allDots.forEach(function(d){ d.addEventListener('click', function(e){ e.preventDefault(); go(parseInt(d.getAttribute('data-idx'))); }); });
+        setInterval(function(){ go(cur + 1); }, 5000);
+    }
+})();
+</script>
+{% endif %}
+
+<button id="scrollHintArrow" class="scroll-hint-arrow" type="button" aria-label="Bajar para ver tu documento">
+    <span class="arrow-icon">&#8595;</span>
+    <span>Sigue bajando para ver tu documento</span>
+</button>
+<script>
+(function(){
+    var arrow = document.getElementById('scrollHintArrow');
+    if (!arrow) return;
+    var dismissed = false;
+    var shown = false;
+    function dismiss(){ if (dismissed) return; dismissed = true; arrow.style.display = 'none'; window.removeEventListener('scroll', onScroll, true); }
+    function onScroll(){
+        if (!shown) return;
+        var sy = window.pageYOffset || document.documentElement.scrollTop || 0;
+        if (sy > 80) dismiss();
+    }
+    function maybeShow(){
+        if (dismissed || shown) return;
+        try {
+            var msgs = document.querySelectorAll('#chatMessages .msg.assistant, #chatMessages .msg.system .download-btn, .chat-messages .msg.assistant');
+            if (!msgs || msgs.length === 0) return;
+            var docH = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+            var winH = window.innerHeight;
+            if (docH - winH < 250) return;
+            shown = true;
+            arrow.style.display = 'inline-flex';
+        } catch(e){}
+    }
+    arrow.addEventListener('click', function(){
+        var target = document.querySelector('.chat-messages') || document.querySelector('#chatMessages') || document.body;
+        try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e) { window.scrollTo(0, target.offsetTop || 400); }
+        setTimeout(dismiss, 600);
+    });
+    window.addEventListener('scroll', onScroll, true);
+    var checkInt = setInterval(function(){ maybeShow(); if (shown || dismissed) clearInterval(checkInt); }, 700);
+    setTimeout(function(){ clearInterval(checkInt); }, 30000);
+})();
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ELEMENT_NUM = {{ element_num }};
+const MODULE_PLACEHOLDER = {{ module_placeholder|tojson }};
+const INITIAL_DOCS = {{ generated_docs | tojson }};
+const USER_TIER = '{% if current_user.is_authenticated %}{{ current_user.tier }}{% else %}FREE{% endif %}';
+const USER_AUTHENTICATED = {% if current_user.is_authenticated %}true{% else %}false{% endif %};
+const FREE_DOWNLOADS_USED = {{ free_downloads_used|default(0) }};
+const FREE_DOWNLOAD_LIMIT = 1;
+let HAS_ALACARTE = {% if has_alacarte %}true{% else %}false{% endif %};
+let FREE_HAS_DOWNLOADS_LEFT = (USER_TIER === 'FREE' && FREE_DOWNLOADS_USED < FREE_DOWNLOAD_LIMIT);
+let PAYWALL_ACTIVE = (!USER_AUTHENTICATED || (USER_TIER === 'FREE' && !FREE_HAS_DOWNLOADS_LEFT && !HAS_ALACARTE));
+const IS_ANON = (!USER_AUTHENTICATED && USER_TIER === 'FREE');
+const SAVED_COURSE_TOPIC = {{ (saved_course_topic or '')|tojson }};
+const COURSE_SESSION_META = {{ (course_session_meta or {'active_id': None, 'session_num': None, 'total': 0, 'topic': ''})|tojson }};
+const ALACARTE_REMAINING = {{ alacarte_remaining|default(0) }};
+let conversationHistory = [];
+let courseTopic = null;
+let pendingAction = null;
+let chatLog = [];
+let lastGeneratedFile = null;
+const SERVER_PRIOR_CHAT_HISTORY = {{ (prior_chat_history or [])|tojson }};
+const SERVER_PRIOR_GENERATED_FILES = {{ (prior_generated_files or [])|tojson }};
+let anonModalShownThisSession = false;
+let uploadedSpecsFiles = [];
+let specsTextCache = '';
+
+async function safeFetchJSON(response) {
+    var contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        throw new Error('El servidor tardó demasiado en responder. Por favor intenta de nuevo.');
+    }
+    return await response.json();
+}
+
+function showAnonProgressModal() {
+    if (anonModalShownThisSession) return;
+    anonModalShownThisSession = true;
+    try { sessionStorage.setItem('pertinentia_anon_intent', 'elemento1'); } catch(e) {}
+    window.location.href = '/registro';
+}
+
+function showAnonLeadModal(filename) {
+    if (!filename) {
+        showAnonProgressModal();
+        return;
+    }
+    if (anonModalShownThisSession) return;
+    var modal = document.getElementById('anonConversionModal');
+    if (!modal) return;
+    anonModalShownThisSession = true;
+    var fileInfo = document.getElementById('anonModalFileInfo');
+    var fileNameEl = document.getElementById('anonModalFileName');
+    if (fileInfo && fileNameEl) {
+        fileNameEl.textContent = filename.replace(/^anon_/, '');
+        fileInfo.style.display = 'block';
+    }
+    lastGeneratedFile = filename;
+    modal.style.display = 'flex';
+}
+
+const STORAGE_KEY = 'pertinentia_chat_e' + ELEMENT_NUM;
+const NEXT_ELEMENT = { 1: {num: 2, label: 'Diseñar Evaluaciones'}, 2: {num: 3, label: 'Diseñar Manuales'}, 3: {num: 4, label: 'Evaluación Final'} };
+const PREV_ELEMENT = { 2: {num: 1, label: 'Carta Descriptiva'}, 3: {num: 2, label: 'Diseñar Evaluaciones'}, 4: {num: 3, label: 'Diseñar Manuales'} };
+
+function setCourseTopic(topic) {
+    courseTopic = topic;
+    localStorage.setItem('pertinentia_course_topic', topic);
+    showTopicBar(topic);
+}
+
+function getCourseTopic() {
+    return courseTopic;
+}
+
+function showTopicBar(topic) {
+    var bar = document.getElementById('topicBar');
+    var badge = document.getElementById('topicBadge');
+    if (topic && bar && badge) {
+        badge.textContent = 'Curso activo: ' + topic;
+        bar.style.display = 'flex';
+    }
+}
+
+function resetCourse() {
+    if (USER_AUTHENTICATED) {
+        var confirmMsg = 'Vas a iniciar un curso nuevo. Tu curso actual se guardará y podrás recargarlo después desde "Tus cursos". ¿Continuar?';
+        if (!window.confirm(confirmMsg)) return;
+    }
+    localStorage.removeItem('pertinentia_course_topic');
+    for (var i = 1; i <= 4; i++) {
+        sessionStorage.removeItem('pertinentia_chat_e' + i);
+    }
+    courseTopic = null;
+    conversationHistory = [];
+    chatLog = [];
+    var doReload = function() { window.location.reload(); };
+    try {
+        fetch('/api/reset_course', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }
+        }).then(doReload).catch(doReload);
+    } catch (err) {
+        doReload();
+    }
+}
+
+function renderCourseSessionCounter() {
+    if (!USER_AUTHENTICATED) return;
+    try {
+        var counter = document.getElementById('courseSessionCounter');
+        var bar = document.getElementById('topicBar');
+        if (!counter) return;
+        var sn = COURSE_SESSION_META && COURSE_SESSION_META.session_num;
+        var tot = COURSE_SESSION_META && COURSE_SESSION_META.total;
+        if (sn && tot && tot >= 1) {
+            counter.textContent = 'Curso #' + sn + ' de ' + tot;
+            counter.style.display = 'inline-block';
+            if (bar && bar.style.display === 'none' && (COURSE_SESSION_META.topic || SAVED_COURSE_TOPIC)) {
+                var badge = document.getElementById('topicBadge');
+                if (badge && !badge.textContent) {
+                    badge.textContent = 'Curso activo: ' + (COURSE_SESSION_META.topic || SAVED_COURSE_TOPIC || 'Sin título');
+                }
+                bar.style.display = 'flex';
+            }
+        }
+    } catch(e) {}
+}
+
+function loadCourseNavigator() {
+    if (!USER_AUTHENTICATED) return;
+    fetch('/api/course_sessions', { credentials: 'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            if (!data || !data.success) return;
+            var sessions = data.sessions || [];
+            var nav = document.getElementById('courseNavigator');
+            var sel = document.getElementById('courseSessionSelect');
+            var grp = document.getElementById('courseGroupsList');
+            if (!nav || !sel) return;
+            if (sessions.length === 0) { nav.style.display = 'none'; return; }
+            sel.innerHTML = '';
+            sessions.forEach(function(s){
+                var opt = document.createElement('option');
+                var label = '#' + s.session_num + ' · ' + (s.topic || 'Sin título') +
+                            ' · ' + (s.document_count || 0) + ' docs · ' + (s.message_count || 0) + ' msgs';
+                if (s.is_active) label += '  ★ activo';
+                if (s.last_activity_at) label += ' · ' + s.last_activity_at;
+                opt.value = s.id;
+                opt.textContent = label;
+                if (s.is_active) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            if (grp) {
+                var html = '';
+                sessions.forEach(function(s){
+                    html += '<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;">' +
+                            '<strong>Curso #' + s.session_num + '</strong> — ' +
+                            escapeHtmlSafe(s.topic || 'Sin título') +
+                            (s.is_active ? ' <span style="color:#16a34a;font-weight:700;">★ activo</span>' : '') +
+                            '<br><span style="color:#6b7280;font-size:0.75rem;">' +
+                            (s.document_count || 0) + ' documentos · ' +
+                            (s.message_count || 0) + ' mensajes' +
+                            (s.last_activity_at ? ' · última actividad ' + s.last_activity_at : '') +
+                            '</span></div>';
+                });
+                grp.innerHTML = html || '<em style="color:#6b7280;">Sin cursos registrados.</em>';
+            }
+            if (sessions.length >= 1) nav.style.display = 'block';
+            if (!COURSE_SESSION_META.total || COURSE_SESSION_META.total < sessions.length) {
+                COURSE_SESSION_META.total = sessions.length;
+                var act = sessions.find(function(x){ return x.is_active; });
+                if (act) {
+                    COURSE_SESSION_META.session_num = act.session_num;
+                    COURSE_SESSION_META.topic = act.topic || '';
+                    COURSE_SESSION_META.active_id = act.id;
+                }
+                renderCourseSessionCounter();
+            }
+        })
+        .catch(function(){});
+}
+
+function escapeHtmlSafe(s) {
+    var d = document.createElement('div');
+    d.textContent = (s == null ? '' : String(s));
+    return d.innerHTML;
+}
+
+function reloadSelectedCourse() {
+    var sel = document.getElementById('courseSessionSelect');
+    if (!sel || !sel.value) return;
+    var csId = sel.value;
+    var activeId = COURSE_SESSION_META && COURSE_SESSION_META.active_id;
+    if (String(csId) === String(activeId)) {
+        var st = document.getElementById('courseNavReloadStatus');
+        if (st) { st.textContent = 'Este ya es el curso activo.'; st.style.display = 'block'; setTimeout(function(){ st.style.display='none'; }, 2500); }
+        return;
+    }
+    if (!window.confirm('Recargar este curso reemplazará el contexto actual (sin perder el curso actual). ¿Continuar?')) return;
+    var btn = document.getElementById('reloadCourseBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Recargando…'; }
+    fetch('/api/load_course/' + encodeURIComponent(csId), {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data && data.success) {
+            for (var i = 1; i <= 4; i++) sessionStorage.removeItem('pertinentia_chat_e' + i);
+            localStorage.removeItem('pertinentia_course_topic');
+            window.location.reload();
+        } else {
+            if (btn) { btn.disabled = false; btn.textContent = '↻ Recargar curso'; }
+            alert('No se pudo recargar el curso. Intenta de nuevo.');
+        }
+    })
+    .catch(function(){
+        if (btn) { btn.disabled = false; btn.textContent = '↻ Recargar curso'; }
+        alert('Error de red al recargar el curso.');
+    });
+}
+
+function saveChat() {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        chatLog: chatLog,
+        conversationHistory: conversationHistory,
+        courseTopic: courseTopic,
+        wasAnon: IS_ANON
+    }));
+}
+
+var PENDING_GEN_KEY = 'pertinentia_pending_gen_e' + ELEMENT_NUM;
+function markGenerationPending(msg, topic) {
+    try {
+        sessionStorage.setItem(PENDING_GEN_KEY, JSON.stringify({
+            message: (msg || '').slice(0, 4000),
+            topic: (topic || '').slice(0, 300),
+            elementNum: ELEMENT_NUM,
+            startedAt: Date.now()
+        }));
+    } catch(e) {}
+}
+function clearGenerationPending() {
+    try { sessionStorage.removeItem(PENDING_GEN_KEY); } catch(e) {}
+}
+function checkPendingGenerationOnLoad() {
+    var raw;
+    try { raw = sessionStorage.getItem(PENDING_GEN_KEY); } catch(e) { return; }
+    if (!raw) return;
+    var data;
+    try { data = JSON.parse(raw); } catch(e) { clearGenerationPending(); return; }
+    if (!data || !data.startedAt) { clearGenerationPending(); return; }
+    var ageMs = Date.now() - data.startedAt;
+    if (ageMs > 15 * 60 * 1000) { clearGenerationPending(); return; }
+    var hasAssistantAfter = chatLog.some(function(e) {
+        return e.type === 'message' && e.role === 'assistant';
+    });
+    if (hasAssistantAfter) { clearGenerationPending(); return; }
+    var topicLabel = data.topic || courseTopic || 'tu curso';
+    if (topicLabel.length > 90) topicLabel = topicLabel.slice(0, 87) + '...';
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    var existing = document.getElementById('pendingGenBanner');
+    if (existing) existing.remove();
+    var banner = document.createElement('div');
+    banner.id = 'pendingGenBanner';
+    banner.className = 'msg system';
+    banner.style.cssText = 'background:linear-gradient(135deg,#fff7ed,#ffedd5);border-left:4px solid #FA8072;padding:1.1rem 1.3rem;margin-bottom:0.85rem;border-radius:8px;font-size:0.95rem;line-height:1.6;animation:pulse-loading 1.8s ease-in-out infinite;';
+    banner.innerHTML =
+        '\u{1F4DA} <strong>Estamos dise\u00f1ando tu curso</strong> \u201c' + escapeHtml(topicLabel) + '\u201d ' +
+        'bajo los est\u00e1ndares <strong>EC0301</strong> y <strong>EC0217.01</strong>. ' +
+        'Toma <strong>~5 minutos</strong>. Tu conversaci\u00f3n est\u00e1 a salvo.' +
+        '<div style="margin-top:0.75rem;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">' +
+        '<button id="pendingGenResumeBtn" style="background:#FA8072;color:#fff;border:0;padding:0.55rem 1rem;border-radius:8px;font-weight:700;font-size:0.88rem;cursor:pointer;">' +
+        '\u25B6 Continuar generaci\u00f3n ahora</button>' +
+        '<button id="pendingGenDismissBtn" style="background:#fff;color:#6b7280;border:1px solid #d1d5db;padding:0.55rem 1rem;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">' +
+        'Descartar</button>' +
+        '<span style="font-size:0.78rem;color:#6b7280;">Si te registraste mientras se generaba, pulsa <em>Continuar</em> para retomarla sin perder tu progreso.</span>' +
+        '</div>';
+    container.insertBefore(banner, container.firstChild);
+    document.getElementById('pendingGenDismissBtn').onclick = function() {
+        clearGenerationPending();
+        banner.remove();
+    };
+    document.getElementById('pendingGenResumeBtn').onclick = function() {
+        clearGenerationPending();
+        banner.remove();
+        var input = document.getElementById('userInput');
+        if (input && data.message) {
+            input.value = data.message;
+            window._courseConfirmed = true;
+            if (data.topic) setCourseTopic(data.topic);
+            sendMessage();
+        }
+    };
+}
+
+function restoreChat() {
+    var saved = sessionStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    try {
+        var data = JSON.parse(saved);
+        if (!data.chatLog || data.chatLog.length === 0) return false;
+        if (data.wasAnon && USER_AUTHENTICATED) {
+            chatLog = data.chatLog.filter(function(e) { return e.type !== 'download'; });
+            conversationHistory = data.conversationHistory || [];
+            saveChat();
+        } else {
+            chatLog = data.chatLog;
+            conversationHistory = data.conversationHistory || [];
+        }
+        if (data.courseTopic) {
+            courseTopic = data.courseTopic;
+            localStorage.setItem('pertinentia_course_topic', data.courseTopic);
+            showTopicBar(data.courseTopic);
+        }
+        var container = document.getElementById('chatMessages');
+        chatLog.forEach(function(entry) {
+            if (entry.type === 'message') {
+                var div = document.createElement('div');
+                div.className = 'msg ' + entry.role;
+                if (entry.role === 'assistant') {
+                    div.innerHTML = formatMarkdown(entry.content);
+                    if (IS_ANON) {
+                        applyAnonBlur(div);
+                    }
+                } else {
+                    div.textContent = entry.content;
+                }
+                container.appendChild(div);
+            } else if (entry.type === 'download') {
+                addDownloadUI(container, entry.filename);
+            }
+        });
+        container.scrollTop = container.scrollHeight;
+        var hasAssistantMsg = chatLog.some(function(e) { return e.type === 'message' && e.role === 'assistant'; });
+        if (hasAssistantMsg) showNavSequential();
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+function applyBlur(msgDiv) {
+    msgDiv.classList.add('freemium-blur');
+}
+
+function showPaywall() {
+    document.getElementById('paywallModal').style.display = 'flex';
+}
+
+function closePaywall() {
+    document.getElementById('paywallModal').style.display = 'none';
+}
+
+function stripUserPrefix(name) {
+    return name.replace(/^u\d+_/, '');
+}
+
+window.DOCS_META = window.DOCS_META || {};
+function _docBadgeNode(filename) {
+    try {
+        var info = window.DOCS_META && window.DOCS_META[filename];
+        if (!info || !info.cs_num) return null;
+        var span = document.createElement('span');
+        span.className = 'course-badge';
+        span.setAttribute('style', 'display:inline-block;font-size:0.72em;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:10px;padding:1px 7px;margin-right:6px;vertical-align:middle;');
+        if (info.topic) span.setAttribute('title', String(info.topic));
+        span.textContent = 'Curso #' + info.cs_num;
+        return span;
+    } catch(e) { return null; }
+}
+function loadDocsMeta() {
+    return fetch('/api/docs_meta').then(function(r){return r.json();}).then(function(d){
+        if (d && d.success && d.meta) { window.DOCS_META = d.meta; }
+    }).catch(function(){});
+}
+function renderDocsSidebar() {
+    var section = document.getElementById('docsSection');
+    var list = document.getElementById('docsList');
+    list.innerHTML = '';
+    var docs = Array.from(new Set(INITIAL_DOCS));
+    if (docs.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    docs.forEach(function(doc, idx) {
+        var li = document.createElement('li');
+        li.id = 'doc-item-' + doc.replace(/[^a-zA-Z0-9]/g, '_');
+        if (PAYWALL_ACTIVE) {
+            li.innerHTML = '<span style="flex:1;color:#9ca3af;">' + stripUserPrefix(doc) + ' &#128274;</span>' +
+                '<a href="/precios" class="upgrade-link-sm" style="font-size:0.8em;color:#FA8072;margin-left:8px;">Desbloquear</a>';
+        } else if (FREE_HAS_DOWNLOADS_LEFT) {
+            li.innerHTML = '<a href="/download/' + encodeURIComponent(doc) + '" style="flex:1;" class="free-download-link" onclick="return handleFreeDownload(this);">' + stripUserPrefix(doc) + '</a>';
+        } else {
+            li.innerHTML = '<a href="/download/' + encodeURIComponent(doc) + '" style="flex:1;">' + stripUserPrefix(doc) + '</a>' +
+                '<button class="delete-btn" onclick="deleteDoc(\'' + doc.replace(/'/g, "\\'") + '\', this)" title="Eliminar">&#128465;</button>';
+        }
+        var badge = _docBadgeNode(doc);
+        if (badge) li.insertBefore(badge, li.firstChild);
+        list.appendChild(li);
+    });
+}
+
+function trackFunnelEvent(action, extras) {
+    try {
+        var body = JSON.stringify({ action: action, extra_data: extras || {} });
+        if (navigator.sendBeacon) {
+            var blob = new Blob([body], { type: 'application/json' });
+            navigator.sendBeacon('/api/funnel/event', blob);
+        } else {
+            fetch('/api/funnel/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }).catch(function(){});
+        }
+    } catch(e) {}
+}
+document.addEventListener('click', function(ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="/download/"]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    var fname = '';
+    try { fname = decodeURIComponent(href.replace(/^\/download\//, '')); } catch(e) { fname = href; }
+    trackFunnelEvent('click_descargar', { archivo: fname, modulo: ELEMENT_NUM });
+}, true);
+function handleFreeDownload(linkEl) {
+    var allLinks = document.querySelectorAll('.free-download-link');
+    allLinks.forEach(function(el) {
+        if (el !== linkEl) {
+            var li = el.closest('li');
+            if (li) {
+                var docName = el.textContent;
+                li.innerHTML = '<span style="flex:1;color:#9ca3af;">' + docName + ' &#128274;</span>' +
+                    '<a href="/precios" class="upgrade-link-sm" style="font-size:0.8em;color:#FA8072;margin-left:8px;">Desbloquear</a>';
+            }
+        }
+    });
+    window.FREE_DOWNLOADS_USED_LOCAL = (window.FREE_DOWNLOADS_USED_LOCAL || FREE_DOWNLOADS_USED) + 1;
+    var downloadBtns = document.querySelectorAll('.msg.system .download-btn.free-download-link');
+    downloadBtns.forEach(function(btn) {
+        if (btn !== linkEl) {
+            var parentDiv = btn.closest('.msg.system');
+            if (parentDiv) {
+                if (IS_ANON) {
+                    parentDiv.innerHTML = '<strong>Documento generado</strong><br><br>' +
+                        '<a href="#" class="download-btn" onclick="event.preventDefault();anonModalShownThisSession=false;showAnonLeadModal(lastGeneratedFile);">&#128274; Desbloquear con Registro GRATIS</a>';
+                } else {
+                    parentDiv.innerHTML = '<strong>Documento generado</strong><br><br>' +
+                        '<a href="/precios" class="download-btn">&#128274; Desbloquear con Registro GRATIS</a>';
+                }
+            }
+        }
+    });
+    return true;
+}
+
+async function deleteDoc(filename, btn) {
+    if (!confirm('¿Eliminar este documento?')) return;
+    try {
+        var resp = await fetch('/delete/' + encodeURIComponent(filename), {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var li = btn.closest('li');
+            if (li) li.remove();
+            var idx = INITIAL_DOCS.indexOf(filename);
+            if (idx > -1) INITIAL_DOCS.splice(idx, 1);
+            if (INITIAL_DOCS.length === 0) {
+                document.getElementById('docsSection').style.display = 'none';
+            }
+        }
+    } catch(e) {}
+}
+
+function showNavSequential() {
+    var next = NEXT_ELEMENT[ELEMENT_NUM];
+    var prev = PREV_ELEMENT[ELEMENT_NUM];
+    var nav = document.getElementById('navSequential');
+    var btn = document.getElementById('navNextBtn');
+    var prevBtn = document.getElementById('navPrevBtn');
+    if (prevBtn) {
+        if (prev) {
+            prevBtn.href = '/elemento/' + prev.num;
+            prevBtn.innerHTML = '\u2B05 Atr\u00e1s: ' + prev.label;
+            prevBtn.style.display = 'inline-block';
+        } else {
+            prevBtn.style.display = 'none';
+        }
+    }
+    if (!next) {
+        if (nav && prev) nav.style.display = 'flex';
+        if (btn) btn.style.display = 'none';
+        return;
+    }
+    if (btn) btn.style.display = 'inline-block';
+    if (IS_ANON) {
+        btn.href = '#';
+        btn.innerHTML = '&#128274; Siguiente Paso: ' + next.label + ' (Requiere Registro)';
+        btn.style.opacity = '0.7';
+        btn.style.background = '#9ca3af';
+        btn.style.cursor = 'not-allowed';
+        btn.onclick = function(e) {
+            e.preventDefault();
+            anonModalShownThisSession = false;
+            showAnonLeadModal(lastGeneratedFile);
+        };
+    } else {
+        btn.href = '/elemento/' + next.num;
+        btn.textContent = 'Siguiente Paso: ' + next.label + ' \u27A1';
+    }
+    nav.style.display = 'flex';
+}
+
+function hydrateFromServerHistory() {
+    if (!SERVER_PRIOR_CHAT_HISTORY || !SERVER_PRIOR_CHAT_HISTORY.length) return false;
+    if (chatLog && chatLog.length > 0) return false;
+    var container = document.getElementById('chatMessages');
+    if (!container) return false;
+    conversationHistory = [];
+    chatLog = [];
+    SERVER_PRIOR_CHAT_HISTORY.forEach(function(m) {
+        if (!m || !m.role || typeof m.content !== 'string') return;
+        if (m.role !== 'user' && m.role !== 'assistant' && m.role !== 'system') return;
+        conversationHistory.push({ role: m.role, content: m.content });
+        chatLog.push({ type: 'message', role: m.role, content: m.content });
+        var div = document.createElement('div');
+        div.className = 'msg ' + m.role;
+        if (m.role === 'assistant') {
+            div.innerHTML = formatMarkdown(m.content);
+            if (IS_ANON) { applyAnonBlur(div); }
+        } else {
+            div.textContent = m.content;
+        }
+        container.appendChild(div);
+    });
+    if (SERVER_PRIOR_GENERATED_FILES && SERVER_PRIOR_GENERATED_FILES.length) {
+        var lastFile = SERVER_PRIOR_GENERATED_FILES[SERVER_PRIOR_GENERATED_FILES.length - 1];
+        if (lastFile && (USER_AUTHENTICATED || IS_ANON)) {
+            try {
+                lastGeneratedFile = lastFile;
+                addDownloadUI(container, lastFile);
+                chatLog.push({ type: 'download', filename: lastFile });
+            } catch(e) {}
+        }
+    }
+    container.scrollTop = container.scrollHeight;
+    try { saveChat(); } catch(e) {}
+    var hasAssistantMsg = chatLog.some(function(e) { return e.type === 'message' && e.role === 'assistant'; });
+    if (hasAssistantMsg) { try { showNavSequential(); } catch(e) {} }
+    return true;
+}
+
+(function init() {
+    var savedTopic = localStorage.getItem('pertinentia_course_topic');
+    if (!savedTopic && SAVED_COURSE_TOPIC) {
+        savedTopic = SAVED_COURSE_TOPIC;
+        localStorage.setItem('pertinentia_course_topic', savedTopic);
+    }
+    if (savedTopic) {
+        courseTopic = savedTopic;
+        showTopicBar(savedTopic);
+        var welcomeEl = document.getElementById('welcomeMsg');
+        var readyMsg = welcomeEl.dataset.ready;
+        if (readyMsg) {
+            welcomeEl.textContent = readyMsg;
+        }
+    }
+    var serverHasHistory = (SERVER_PRIOR_CHAT_HISTORY && SERVER_PRIOR_CHAT_HISTORY.length > 0);
+    if (serverHasHistory) {
+        try {
+            var container = document.getElementById('chatMessages');
+            if (container) {
+                Array.prototype.slice.call(container.querySelectorAll('.msg.user, .msg.assistant')).forEach(function(n) { n.remove(); });
+            }
+            chatLog = [];
+            conversationHistory = [];
+            try { sessionStorage.removeItem(STORAGE_KEY); } catch(e) {}
+            hydrateFromServerHistory();
+        } catch(e) {}
+    } else {
+        var restored = restoreChat();
+        if (!restored) {
+            try { hydrateFromServerHistory(); } catch(e) {}
+        }
+    }
+    try { loadDocsMeta().then(function(){ renderDocsSidebar(); }); } catch(e) { renderDocsSidebar(); }
+    try { checkPendingGenerationOnLoad(); } catch(e) {}
+    try { renderCourseSessionCounter(); } catch(e) {}
+    try { loadCourseNavigator(); } catch(e) {}
+    try { showRefineUpfront(); } catch(e) {}
+})();
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMarkdown(text) {
+    var html = escapeHtml(text);
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/^\- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/gs, function(match) {
+        return '<ul>' + match + '</ul>';
+    });
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    html = html.replace(/\n\n/g, '<br><br>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+function addMessage(role, content) {
+    var container = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg ' + role;
+    if (role === 'assistant') {
+        div.innerHTML = formatMarkdown(content);
+        if (IS_ANON) {
+            applyAnonBlur(div);
+        }
+    } else {
+        div.textContent = content;
+    }
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    chatLog.push({ type: 'message', role: role, content: content });
+    saveChat();
+}
+
+function triggerAnonModalDelayed() {
+    if (!IS_ANON || anonModalShownThisSession || !lastGeneratedFile) return;
+    setTimeout(function() {
+        showAnonLeadModal(lastGeneratedFile);
+    }, 2000);
+}
+
+function applyAnonBlur(msgDiv) {
+    var html = msgDiv.innerHTML;
+    var lines = html.split(/<br\s*\/?>/gi);
+    if (lines.length < 3) return;
+
+    var cutIndex = -1;
+    for (var i = 0; i < lines.length; i++) {
+        var lineText = lines[i].replace(/<[^>]*>/g, '').trim();
+        if (/^2[\.\)\-\s]/.test(lineText) || /OBJETIVO\s+GENERAL/i.test(lineText)) {
+            cutIndex = i;
+            break;
+        }
+    }
+
+    if (cutIndex <= 0) {
+        cutIndex = Math.min(Math.ceil(lines.length * 0.3), 8);
+        if (cutIndex >= lines.length - 1) return;
+    }
+
+    var visiblePart = lines.slice(0, cutIndex).join('<br>');
+    var blurredPart = lines.slice(cutIndex).join('<br>');
+    msgDiv.innerHTML = visiblePart +
+        '<br><div class="anon-blur-wrapper" onclick="anonModalShownThisSession=false;showAnonLeadModal(lastGeneratedFile);">' +
+        '<div class="anon-blur-section">' + blurredPart + '</div></div>';
+}
+
+function addDownloadUI(container, filename) {
+    var div = document.createElement('div');
+    div.className = 'msg system';
+    div.style.padding = '1rem';
+    if (PAYWALL_ACTIVE) {
+        if (IS_ANON) {
+            div.innerHTML = '<strong>Documento generado</strong><br><br>' +
+                '<a href="#" class="download-btn" onclick="event.preventDefault();anonModalShownThisSession=false;showAnonLeadModal(lastGeneratedFile);">' +
+                '&#128274; Desbloquear con Registro GRATIS</a>';
+        } else {
+            div.innerHTML = '<strong>Documento generado</strong><br><br>' +
+                '<a href="/precios" class="download-btn">' +
+                '&#128274; Desbloquear con Registro GRATIS</a>';
+        }
+    } else if (FREE_HAS_DOWNLOADS_LEFT) {
+        var isPptx = filename.endsWith('.pptx');
+        var label = isPptx ? 'Descargar Presentación (.pptx)' : 'Descargar Word Editable (.docx)';
+        var isContrato = filename.toLowerCase().indexOf('contrato') >= 0;
+        if (isContrato && USER_AUTHENTICATED) {
+            div.innerHTML = '<strong>Documento listo para descarga</strong><br>' +
+                '<small style="color:#6b7280;">Descarga gratuita (1 de ' + FREE_DOWNLOAD_LIMIT + ')</small><br><br>' +
+                '<a href="#" class="download-btn free-download-link" onclick="event.preventDefault();showHeaderModal(\'' + filename.replace(/'/g, "\\'") + '\',true);">' +
+                label + '</a>';
+        } else {
+            div.innerHTML = '<strong>Documento listo para descarga</strong><br>' +
+                '<small style="color:#6b7280;">Descarga gratuita (1 de ' + FREE_DOWNLOAD_LIMIT + ')</small><br><br>' +
+                '<a href="/download/' + encodeURIComponent(filename) + '" class="download-btn free-download-link" onclick="handleFreeDownload(this);if(typeof trackBetaDownload===\'function\')trackBetaDownload(ELEMENT_NUM,\'' + filename.replace(/'/g, "\\'") + '\');">' +
+                label + '</a>';
+        }
+    } else {
+        var isPptx = filename.endsWith('.pptx');
+        var label = isPptx ? 'Descargar Presentación (.pptx)' : 'Descargar Word Editable (.docx)';
+        var isContrato = filename.toLowerCase().indexOf('contrato') >= 0;
+        if (isContrato && USER_AUTHENTICATED) {
+            div.innerHTML = '<strong>Documento listo para descarga</strong><br><br>' +
+                '<a href="#" class="download-btn" onclick="event.preventDefault();showHeaderModal(\'' + filename.replace(/'/g, "\\'") + '\',false);">' +
+                label + '</a>';
+        } else {
+            div.innerHTML = '<strong>Documento listo para descarga</strong><br><br>' +
+                '<a href="/download/' + encodeURIComponent(filename) + '" class="download-btn" onclick="if(typeof trackBetaDownload===\'function\')trackBetaDownload(ELEMENT_NUM,\'' + filename.replace(/'/g, "\\'") + '\');">' +
+                label + '</a>';
+        }
+    }
+    container.appendChild(div);
+}
+
+function addDownloadButton(filename) {
+    var container = document.getElementById('chatMessages');
+    addDownloadUI(container, filename);
+    container.scrollTop = container.scrollHeight;
+    chatLog.push({ type: 'download', filename: filename });
+    saveChat();
+    if (!INITIAL_DOCS.includes(filename)) {
+        INITIAL_DOCS.push(filename);
+    }
+    renderDocsSidebar();
+    if (typeof trackBetaGeneration === 'function') trackBetaGeneration(ELEMENT_NUM, filename);
+    if (typeof lastGeneratedFile === 'undefined') window.lastGeneratedFile = filename;
+    window.lastGeneratedFile = filename;
+}
+
+/* ===================== MEJORA DE CURSO (Refine) ===================== */
+var REFINE_MAX = 3;
+var _refineState = { used: 0, available: true };
+var _refineAccion = '';
+var _refineTarget = '';
+var _refineUpfrontShown = false;
+var REFINE_ACTIONS = [
+    { key: 'Refinar', icon: '\uD83C\uDFAF', desc: 'M\u00e1s precisi\u00f3n y claridad' },
+    { key: 'Fortalecer', icon: '\uD83D\uDCAA', desc: 'M\u00e1s profundidad t\u00e9cnica' },
+    { key: 'Enriquecer', icon: '\u2728', desc: 'Casos y ejercicios' },
+    { key: 'Optimizar', icon: '\u2702\uFE0F', desc: 'M\u00e1s simple y breve' }
+];
+var REFINE_TARGETS = [
+    { v: 'objetivos', label: 'Objetivos' },
+    { v: 'temario', label: 'Temario' },
+    { v: 'actividades', label: 'Actividades' },
+    { v: 'evaluacion', label: 'Evaluaci\u00f3n' },
+    { v: 'Todo el curso', label: 'Todo el curso' }
+];
+
+function refineEligible() {
+    if (ELEMENT_NUM === 1) return true;
+    if (ELEMENT_NUM === 2 || ELEMENT_NUM === 3) {
+        return (USER_TIER === 'PRO' || USER_TIER === 'PREMIUM' || HAS_ALACARTE);
+    }
+    return false;
+}
+
+function showRefineUpfront() {
+    if (_refineUpfrontShown || !refineEligible()) return;
+    _refineUpfrontShown = true;
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    var div = document.createElement('div');
+    div.className = 'msg system';
+    div.id = 'refineUpfrontNote';
+    div.style.padding = '0.5rem 1rem';
+    div.innerHTML =
+        '<div style="background:#eef4fb;border:1px solid #cdddf0;border-left:4px solid #13283f;border-radius:10px;padding:0.85rem 1rem;color:#13283f;font-size:0.9rem;line-height:1.5;">' +
+        '\uD83D\uDCA1 <strong>Para que realmente tengas tu curso en minutos</strong>, tendr\u00e1s <strong>3 oportunidades</strong> para decirme d\u00f3nde y qu\u00e9 quieres mejorar despu\u00e9s de generar tu documento.' +
+        '</div>';
+    if (container.firstChild) {
+        container.insertBefore(div, container.firstChild);
+    } else {
+        container.appendChild(div);
+    }
+}
+
+function maybeShowRefinePanel(data) {
+    if (!data || !data.refine_available) return;
+    if (!refineEligible()) return;
+    _refineState.used = (typeof data.refine_used === 'number') ? data.refine_used : _refineState.used;
+    _refineState.available = (typeof data.refine_remaining === 'number') ? (data.refine_remaining > 0) : true;
+    _refineAccion = '';
+    _refineTarget = '';
+    renderRefinePanel();
+}
+
+function _removeRefinePanel() {
+    var old = document.getElementById('refinePanel');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+}
+
+function renderRefinePanel() {
+    _removeRefinePanel();
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    var div = document.createElement('div');
+    div.className = 'msg system';
+    div.id = 'refinePanel';
+    div.style.padding = '1rem';
+
+    var remaining = Math.max(0, REFINE_MAX - (_refineState.used || 0));
+    var html = '<div style="background:#fff;border:1px solid #cdddf0;border-top:4px solid #13283f;border-radius:12px;padding:1.1rem;">';
+
+    if (remaining <= 0) {
+        html += '<div style="color:#13283f;font-size:0.98rem;line-height:1.55;">' +
+            '\u2705 <strong>Tu curso ya cuenta con la estructura suficiente para comenzar a impartirse.</strong><br>' +
+            'Te recomendamos avanzar a los entregables finales.</div>' +
+            '<div style="margin-top:0.9rem;">' +
+            '<button type="button" onclick="finalizeRefine()" style="background:#13283f;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-size:0.92rem;font-weight:600;cursor:pointer;">Generar versi\u00f3n final \u2192</button>' +
+            '</div>';
+        html += '</div>';
+        div.innerHTML = html;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        return;
+    }
+
+    html += '<div style="font-weight:700;color:#13283f;font-size:1.02rem;margin-bottom:0.15rem;">\u00bfHay algo que quieras ajustar antes de generar tus entregables?</div>';
+    html += '<div style="color:#6b7280;font-size:0.84rem;margin-bottom:0.85rem;">Te ' + (remaining === 1 ? 'queda' : 'quedan') + ' <strong>' + remaining + '</strong> ' + (remaining === 1 ? 'oportunidad' : 'oportunidades') + ' de mejora.</div>';
+
+    html += '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.6rem;">';
+    REFINE_ACTIONS.forEach(function(a) {
+        var active = (_refineAccion === a.key);
+        html += '<button type="button" data-acc="' + a.key + '" onclick="selectRefineAction(\'' + a.key + '\')" ' +
+            'style="flex:1 1 130px;min-width:130px;text-align:left;background:' + (active ? '#13283f' : '#f4f7fb') + ';color:' + (active ? '#fff' : '#13283f') + ';border:1px solid ' + (active ? '#13283f' : '#cdddf0') + ';padding:9px 11px;border-radius:9px;cursor:pointer;font-size:0.88rem;">' +
+            '<span style="font-size:1.05rem;">' + a.icon + '</span> <strong>' + a.key + '</strong>' +
+            '<br><span style="font-size:0.76rem;opacity:0.85;">' + a.desc + '</span></button>';
+    });
+    html += '</div>';
+
+    html += '<div id="refineStep2" style="display:' + (_refineAccion ? 'block' : 'none') + ';">';
+    html += '<div style="font-weight:600;color:#13283f;font-size:0.88rem;margin:0.5rem 0 0.35rem;">\u00bfSobre qu\u00e9 elemento?</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem;">';
+    REFINE_TARGETS.forEach(function(t) {
+        var active = (_refineTarget === t.v);
+        html += '<button type="button" onclick="selectRefineTarget(\'' + t.v.replace(/'/g, "\\'") + '\')" ' +
+            'style="background:' + (active ? '#13283f' : '#fff') + ';color:' + (active ? '#fff' : '#13283f') + ';border:1px solid ' + (active ? '#13283f' : '#cdddf0') + ';padding:6px 13px;border-radius:20px;cursor:pointer;font-size:0.84rem;">' + t.label + '</button>';
+    });
+    html += '</div>';
+    html += '<textarea id="refineDetalle" maxlength="1000" placeholder="Cu\u00e9ntame en una frase qu\u00e9 quieres ajustar (opcional)..." ' +
+        'style="width:100%;box-sizing:border-box;min-height:64px;border:1px solid #cdddf0;border-radius:9px;padding:9px;font-size:0.9rem;font-family:inherit;resize:vertical;"></textarea>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.7rem;align-items:center;">';
+    html += '<button type="button" id="refineSubmitBtn" onclick="submitRefine()" style="background:#16a34a;color:#fff;border:0;padding:10px 20px;border-radius:8px;font-size:0.92rem;font-weight:600;cursor:pointer;">Mejorar Curso</button>';
+    html += '<button type="button" onclick="finalizeRefine()" style="background:transparent;color:#6b7280;border:0;padding:10px 6px;font-size:0.86rem;cursor:pointer;text-decoration:underline;">Ya est\u00e1 bien as\u00ed</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function selectRefineAction(accion) {
+    _refineAccion = accion;
+    renderRefinePanel();
+}
+function selectRefineTarget(target) {
+    _refineTarget = target;
+    renderRefinePanel();
+}
+
+function finalizeRefine() {
+    _removeRefinePanel();
+    var note = document.getElementById('refineUpfrontNote');
+    if (note && note.parentNode) note.parentNode.removeChild(note);
+    if (typeof showNavSequential === 'function') showNavSequential();
+    var container = document.getElementById('chatMessages');
+    if (container) container.scrollTop = container.scrollHeight;
+}
+
+async function submitRefine() {
+    if (!_refineAccion) { alert('Elige qu\u00e9 tipo de mejora deseas aplicar.'); return; }
+    if (!_refineTarget) { alert('Elige sobre qu\u00e9 elemento aplicar la mejora.'); return; }
+    var btn = document.getElementById('refineSubmitBtn');
+    var detalle = (document.getElementById('refineDetalle') || {}).value || '';
+    var loading = document.getElementById('loadingIndicator');
+    if (btn) { btn.disabled = true; btn.textContent = 'Mejorando tu curso...'; }
+    if (loading) loading.classList.add('active');
+    if (typeof startQueuePolling === 'function') startQueuePolling();
+    if (typeof scrollToLoading === 'function') scrollToLoading();
+    try {
+        var response = await fetch('/api/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                element_num: ELEMENT_NUM,
+                accion: _refineAccion,
+                objetivo: _refineTarget,
+                detalle: detalle.trim(),
+                history: conversationHistory,
+                course_topic: (typeof getCourseTopic === 'function' ? getCourseTopic() : (window.courseTopic || '')),
+                template_style: localStorage.getItem('pertinentia_template_style') || 'corporativo'
+            })
+        });
+        var data = await (typeof safeFetchJSON === 'function' ? safeFetchJSON(response) : response.json());
+        if (data.error) {
+            addMessage('system', data.refine_locked ? data.error : ('No se pudo aplicar la mejora: ' + data.error));
+            return;
+        }
+        if (data.refine_exhausted) {
+            _refineState.used = REFINE_MAX;
+            addMessage('system', data.response || 'Tu curso ya cuenta con la estructura suficiente para comenzar a impartirse.');
+            renderRefinePanel();
+            return;
+        }
+        addMessage('assistant', data.response);
+        conversationHistory.push(
+            { role: 'user', content: '[Mejora \u00b7 ' + _refineAccion + ' \u00b7 ' + _refineTarget + '] ' + detalle.trim() },
+            { role: 'assistant', content: data.response }
+        );
+        if (data.generated_file) {
+            addDownloadButton(data.generated_file);
+        }
+        _refineState.used = (typeof data.refine_used === 'number') ? data.refine_used : (_refineState.used + 1);
+        _refineState.available = (typeof data.refine_remaining === 'number') ? (data.refine_remaining > 0) : false;
+        _refineAccion = '';
+        _refineTarget = '';
+        saveChat();
+        renderRefinePanel();
+    } catch (err) {
+        addMessage('system', 'Error de conexi\u00f3n al aplicar la mejora. Int\u00e9ntalo de nuevo en unos segundos.');
+    } finally {
+        if (loading) loading.classList.remove('active');
+        if (typeof stopQueuePolling === 'function') stopQueuePolling();
+    }
+}
+/* =================== FIN MEJORA DE CURSO (Refine) =================== */
+
+var _headerIsFreeDownload = false;
+function showHeaderModal(filename, isFreeDownload) {
+    document.getElementById('headerPendingFile').value = filename;
+    _headerIsFreeDownload = isFreeDownload;
+    document.getElementById('headerPersonalizeModal').style.display = 'flex';
+}
+function submitHeaderAndDownload() {
+    var filename = document.getElementById('headerPendingFile').value;
+    var data = {
+        instructor: document.getElementById('headerInstructor').value,
+        lugar: document.getElementById('headerLugar').value,
+        fecha: document.getElementById('headerFecha').value,
+        horario: document.getElementById('headerHorario').value
+    };
+    var btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Personalizando...';
+    fetch('/api/customize_header/' + encodeURIComponent(filename), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    }).then(function(r) { return r.json(); }).then(function() {
+        document.getElementById('headerPersonalizeModal').style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Personalizar y Descargar';
+        proceedDownload(filename);
+    }).catch(function() {
+        document.getElementById('headerPersonalizeModal').style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Personalizar y Descargar';
+        proceedDownload(filename);
+    });
+}
+function skipHeaderAndDownload() {
+    document.getElementById('headerPersonalizeModal').style.display = 'none';
+    var container = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'msg system';
+    div.style.padding = '1rem';
+    div.innerHTML = '<div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:10px;padding:1rem;">' +
+        '<strong style="color:#92400e;">&#128161; Recomendaci\u00f3n</strong><br>' +
+        '<span style="color:#78350f;">Para que tu Contrato sea 100% congruente, te sugerimos primero generar tu <strong>Carta Descriptiva</strong>. ' +
+        'Escribe el tema de tu curso abajo para comenzar.</span></div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+function proceedDownload(filename) {
+    if (_headerIsFreeDownload) {
+        var link = document.createElement('a');
+        link.href = '/download/' + encodeURIComponent(filename);
+        link.click();
+        var freeLinks = document.querySelectorAll('.free-download-link');
+        freeLinks.forEach(function(el) {
+            el.removeAttribute('onclick');
+            el.href = '/download/' + encodeURIComponent(filename);
+            el.setAttribute('onclick', "if(typeof trackBetaDownload==='function')trackBetaDownload(ELEMENT_NUM,'" + filename.replace(/'/g, "\\'") + "');");
+        });
+        FREE_HAS_DOWNLOADS_LEFT = false;
+        if (typeof handleFreeDownload === 'function') {
+            PAYWALL_ACTIVE = (USER_TIER === 'FREE' && !HAS_ALACARTE);
+        }
+    } else {
+        window.location.href = '/download/' + encodeURIComponent(filename);
+    }
+    if (typeof trackBetaDownload === 'function') trackBetaDownload(ELEMENT_NUM, filename);
+}
+
+var _queuePollInterval = null;
+var _progressInterval = null;
+var _progressMessages = [
+    'La IA est\u00e1 generando tu contenido... puede tardar varios minutos (hasta ~5). No cierres esta ventana.',
+    'Construyendo estructura del documento...',
+    'Generando contenido tem\u00e1tico...',
+    'Integrando instrumentos de evaluaci\u00f3n...',
+    'Finalizando documento...'
+];
+var _progressE3Messages = [
+    'El Manual del Instructor es el documento m\u00e1s completo. Generaci\u00f3n en 2 fases autom\u00e1ticas...',
+    'Fase 1: Construyendo contenido tem\u00e1tico con procedimientos paso a paso...',
+    'Fase 1: Generando sugerencias, t\u00e9cnicas y evaluaci\u00f3n por tema...',
+    'Fase 1 completada. Fase 2: Integrando carta descriptiva completa...',
+    'Fase 2: Generando instrumentos de evaluaci\u00f3n y claves de respuestas...',
+    'Fase 2: Generando glosario, fuentes APA y conclusi\u00f3n...',
+    'Ensamblando documento final...',
+    'Finalizando...'
+];
+var _progressE3MPMessages = [
+    'Generando Manual del Participante completo y apegado al EC0301. Este documento tiene alto valor te\u00f3rico y pr\u00e1ctico, por favor ten paciencia...',
+    'Fase 1: Construyendo portada, presentaci\u00f3n, introducci\u00f3n y objetivos del participante...',
+    'Fase 1: Integrando bienvenida, beneficios del curso y enfoque did\u00e1ctico...',
+    'Fase 1 completada. Fase 2: Desarrollando contenido tem\u00e1tico profundo para el participante...',
+    'Fase 2: Generando actividades de refuerzo y evaluaci\u00f3n por tema...',
+    'Fase 2: Integrando resumen, conclusi\u00f3n y fuentes APA...',
+    'Por favor no generes otro producto hasta que este termine. Ensamblando documento final...',
+    'Finalizando tu Manual del Participante...'
+];
+var _progressPresMessages = [
+    'La IA est\u00e1 dise\u00f1ando tu presentaci\u00f3n... puede tardar varios minutos. No cierres esta ventana.',
+    'Estructurando el gui\u00f3n diapositiva por diapositiva...',
+    'Redactando el contenido de cada l\u00e1mina...',
+    'Integrando t\u00e9cnicas grupales y notas para el presentador...',
+    'Dando formato a las tablas, objetivos y temario...',
+    'Ensamblando tu presentaci\u00f3n final...',
+    'Finalizando tu presentaci\u00f3n...'
+];
+
+var _queueHasPriority = false;
+var _lastUserMessage = '';
+var _pendingIsQuickAction = false;
+function startProgressMessages() {
+    var lt = document.getElementById('loadingText');
+    var isPres = ELEMENT_NUM === 3 && _lastUserMessage && (/slide-by-slide/i.test(_lastUserMessage));
+    var isMP = ELEMENT_NUM === 3 && _lastUserMessage && (/participante/i.test(_lastUserMessage)) && !(/instructor/i.test(_lastUserMessage));
+    var msgs = (ELEMENT_NUM === 3) ? (isPres ? _progressPresMessages : (isMP ? _progressE3MPMessages : _progressE3Messages)) : _progressMessages;
+    var idx = 0;
+    _queueHasPriority = false;
+    if (lt) lt.textContent = msgs[0];
+    if (_progressInterval) clearInterval(_progressInterval);
+    _progressInterval = setInterval(function() {
+        if (_queueHasPriority) return;
+        idx++;
+        if (idx < msgs.length) {
+            lt.textContent = msgs[idx];
+        } else {
+            lt.textContent = msgs[msgs.length - 1];
+        }
+    }, 10000);
+}
+function stopProgressMessages() {
+    if (_progressInterval) { clearInterval(_progressInterval); _progressInterval = null; }
+}
+
+function startQueuePolling() {
+    var lt = document.getElementById('loadingText');
+    startProgressMessages();
+    if (_queuePollInterval) clearInterval(_queuePollInterval);
+    _queuePollInterval = setInterval(async function() {
+        try {
+            var r = await fetch('/api/ai_status');
+            var d = await r.json();
+            if (d.queue_waiting > 1) {
+                _queueHasPriority = true;
+                lt.textContent = 'Hay ' + (d.queue_waiting - 1) + ' solicitud(es) antes de la tuya... procesando en orden.';
+            } else {
+                _queueHasPriority = false;
+            }
+        } catch(e) {}
+    }, 4000);
+}
+function stopQueuePolling() {
+    if (_queuePollInterval) { clearInterval(_queuePollInterval); _queuePollInterval = null; }
+    stopProgressMessages();
+    var lt = document.getElementById('loadingText');
+    if (lt) lt.textContent = 'La IA est\u00e1 generando tu contenido... puede tardar varios minutos (hasta ~5). No cierres esta ventana.';
+}
+
+function scrollToLoading() {
+    var el = document.getElementById('loadingIndicator');
+    if (el) {
+        setTimeout(function() {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+}
+
+function handleQuickAction(btn) {
+    var label = btn.dataset.label;
+    var prompt = btn.dataset.prompt;
+    var topic = getCourseTopic();
+    var input = document.getElementById('userInput');
+
+    if (ELEMENT_NUM === 4) {
+        var userText = input.value.trim();
+        if (!userText) {
+            alert('Por favor, pega el contenido de tu producto primero para poder evaluarlo.');
+            input.focus();
+            return;
+        }
+        var evalPrompt = 'Actúa como Evaluador EC0301. Evalúa el siguiente contenido contra el Checklist del ' + label + ':\n\n' + userText;
+        input.value = evalPrompt;
+        sendMessage();
+        return;
+    }
+
+    if (!topic) {
+        var stored = localStorage.getItem('pertinentia_course_topic');
+        if (stored) {
+            setCourseTopic(stored);
+            topic = stored;
+        }
+    }
+
+    if (!topic) {
+        pendingAction = { label: label, prompt: prompt };
+        addMessage('system', 'Por favor, introduce el tema de tu curso para generar: ' + label);
+        input.focus();
+        input.placeholder = MODULE_PLACEHOLDER;
+        return;
+    }
+
+    if (ELEMENT_NUM === 3 && label === 'Manual del Instructor') {
+        addMessage('system', 'El Manual del Instructor es el documento m\u00e1s completo del EC0301 e incluye carta descriptiva, instrumentos de evaluaci\u00f3n y claves de respuestas. Su generaci\u00f3n suele tomar m\u00e1s tiempo. Por favor no cierre esta ventana.');
+    }
+
+    input.value = prompt;
+    _pendingIsQuickAction = true;
+    sendMessage();
+}
+
+async function sendMessage() {
+    var input = document.getElementById('userInput');
+    var btn = document.getElementById('sendBtn');
+    var loading = document.getElementById('loadingIndicator');
+    var message = input.value.trim();
+    if (!message) return;
+
+    var _isAudit = (window._pendingIsAudit === true);
+
+    var currentTopic = getCourseTopic();
+
+    if (pendingAction && !currentTopic) {
+        setCourseTopic(message);
+        var actionPrompt = pendingAction.prompt;
+        pendingAction = null;
+
+        addMessage('user', message);
+        input.value = '';
+        input.placeholder = MODULE_PLACEHOLDER;
+        conversationHistory.push({ role: 'user', content: message });
+
+        btn.disabled = true;
+        input.disabled = true;
+        input.placeholder = 'Generando documento, por favor espera...';
+        loading.classList.add('active');
+        _lastUserMessage = actionPrompt;
+        markGenerationPending(actionPrompt, courseTopic);
+        startQueuePolling();
+        scrollToLoading();
+
+        try {
+            var response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    element_num: ELEMENT_NUM,
+                    message: actionPrompt,
+                    history: conversationHistory,
+                    course_topic: courseTopic,
+                    template_style: localStorage.getItem('pertinentia_template_style') || 'corporativo',
+                    is_quick_action: true,
+                    user_considerations: (window._paso0Considerations || ''),
+                    contexto_institucional: (window._paso0Contexto || '')
+                })
+            });
+            var data = await safeFetchJSON(response);
+            if (data.redirect) {
+                window.location.href = data.redirect;
+                return;
+            }
+            if (data.retry) {
+                addMessage('system', data.error || 'El sistema est\u00e1 ocupado, intenta en unos segundos.');
+            } else if (data.error) {
+                addMessage('system', 'Error: ' + data.error);
+            } else {
+                addMessage('assistant', data.response);
+                conversationHistory.push(
+                    { role: 'user', content: actionPrompt },
+                    { role: 'assistant', content: data.response }
+                );
+                if (data.course_info_pending) {
+                    saveChat();
+                    return;
+                }
+                if (data.generated_file) {
+                    addDownloadButton(data.generated_file);
+                    maybeShowRefinePanel(data);
+                    if (!USER_AUTHENTICATED) {
+                        setTimeout(function() { showAnonLeadModal(data.generated_file); }, 1200);
+                    }
+                    if ((data.email_queued || data.email_sent) && USER_TIER === 'FREE') {
+                        addMessage('system', '\u2709\uFE0F Estamos enviando tu documento por correo a tu bandeja en los pr\u00f3ximos minutos. Si no lo recibes, revisa tu carpeta de spam o desc\u00e1rgalo desde aqu\u00ed.');
+                    }
+                    handleAlacarteResult(data);
+                }
+                showNavSequential();
+                saveChat();
+                triggerAnonModalDelayed();
+                if (data.limit_warning && data.is_anonymous) {
+                    if (data.doc_ready || lastGeneratedFile) {
+                        setTimeout(function() { showAnonLeadModal(lastGeneratedFile); }, 800);
+                    } else {
+                        setTimeout(function() { showAnonProgressModal(); }, 800);
+                    }
+                }
+            }
+        } catch (err) {
+            addMessage('system', 'Error de conexi\u00f3n: ' + err.message);
+        } finally {
+            clearGenerationPending();
+            btn.disabled = false;
+            input.disabled = false;
+            input.placeholder = MODULE_PLACEHOLDER;
+            loading.classList.remove('active');
+            stopQueuePolling();
+            input.focus();
+        }
+        return;
+    }
+
+    if (!currentTopic && conversationHistory.length === 0) {
+        var proposedTopic = message;
+        if (!window._courseConfirmed) {
+            var modal = document.getElementById('courseConfirmModal');
+            if (modal.style.display === 'flex') { return; }
+            var promptLen = (proposedTopic || '').length;
+            document.getElementById('courseConfirmName').textContent = proposedTopic;
+            modal.style.display = 'flex';
+            try {
+                fetch('/api/beta/metric', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type: 'confirm_modal_shown', element_num: (typeof ELEMENT_NUM !== 'undefined' ? ELEMENT_NUM : null), value_int: Math.min(promptLen, 86400)})
+                }).catch(function(){});
+            } catch(e){}
+            var _courseConfirmShownAt = Date.now();
+            var _courseConfirmResolved = false;
+            function _trackCourseConfirmResolution(metricType) {
+                if (_courseConfirmResolved) return;
+                _courseConfirmResolved = true;
+                var elapsedSec = Math.round((Date.now() - _courseConfirmShownAt) / 1000);
+                try {
+                    fetch('/api/beta/metric', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({type: metricType, element_num: (typeof ELEMENT_NUM !== 'undefined' ? ELEMENT_NUM : null), value_int: Math.min(Math.max(elapsedSec, 0), 86400)})
+                    }).catch(function(){});
+                } catch(e){}
+            }
+            document.getElementById('courseConfirmBtn').onclick = function() {
+                _trackCourseConfirmResolution('confirm_modal_confirmed');
+                modal.style.display = 'none';
+                window._courseConfirmed = true;
+                setCourseTopic(proposedTopic);
+                input.value = proposedTopic;
+                sendMessage();
+            };
+            document.getElementById('courseResetBtn').onclick = function() {
+                _trackCourseConfirmResolution('confirm_modal_cancelled');
+                modal.style.display = 'none';
+                input.value = '';
+                input.placeholder = 'Escribe el tema de tu curso...';
+                input.focus();
+            };
+            return;
+        }
+        setCourseTopic(message);
+    }
+
+    window._pendingIsAudit = false;
+    if (_isAudit) {
+        addMessage('system', '\uD83D\uDD0D Ejecutando Autodiagn\u00f3stico EC0301 contra los 138 reactivos\u2026');
+    } else {
+        addMessage('user', message);
+    }
+    input.value = '';
+    btn.disabled = true;
+    input.disabled = true;
+    input.placeholder = 'Generando documento, por favor espera...';
+    loading.classList.add('active');
+    _lastUserMessage = message;
+    markGenerationPending(message, courseTopic || message);
+    startQueuePolling();
+    scrollToLoading();
+
+    var _wasQuickAction = _pendingIsQuickAction;
+    _pendingIsQuickAction = false;
+    try {
+        var response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                element_num: ELEMENT_NUM,
+                message: message,
+                history: conversationHistory,
+                course_topic: courseTopic,
+                template_style: localStorage.getItem('pertinentia_template_style') || 'corporativo',
+                is_quick_action: _wasQuickAction,
+                user_considerations: (window._paso0Considerations || '')
+            })
+        });
+        var data = await safeFetchJSON(response);
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+        if (data.retry) {
+            addMessage('system', data.error || 'El sistema est\u00e1 ocupado, intenta en unos segundos.');
+        } else if (data.error) {
+            addMessage('system', 'Error: ' + data.error);
+        } else {
+            if (!currentTopic && data.detected_topic) {
+                setCourseTopic(data.detected_topic);
+            }
+            if (_isAudit) {
+                addMessage('system', '\u2705 Autodiagn\u00f3stico EC0301 completado. Tu reporte con los reactivos de PRODUCTOS marcados est\u00e1 listo para descargar.');
+            } else {
+                addMessage('assistant', data.response);
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: data.response }
+                );
+            }
+            if (data.course_info_pending) {
+                saveChat();
+                return;
+            }
+            if (data.generated_file) {
+                addDownloadButton(data.generated_file);
+                maybeShowRefinePanel(data);
+                if (!USER_AUTHENTICATED) {
+                    setTimeout(function() { showAnonLeadModal(data.generated_file); }, 1200);
+                }
+                if ((data.email_queued || data.email_sent) && USER_TIER === 'FREE') {
+                    addMessage('system', '\u2709\uFE0F Estamos enviando tu documento por correo a tu bandeja en los pr\u00f3ximos minutos. Si no lo recibes, revisa tu carpeta de spam o desc\u00e1rgalo desde aqu\u00ed.');
+                }
+                handleAlacarteResult(data);
+            }
+            showNavSequential();
+            saveChat();
+            triggerAnonModalDelayed();
+            if (data.limit_warning && data.is_anonymous) {
+                if (data.doc_ready || lastGeneratedFile) {
+                    setTimeout(function() { showAnonLeadModal(lastGeneratedFile); }, 800);
+                } else {
+                    setTimeout(function() { showAnonProgressModal(); }, 800);
+                }
+            }
+        }
+    } catch (err) {
+        addMessage('system', 'Error de conexi\u00f3n: ' + err.message);
+    } finally {
+        clearGenerationPending();
+        btn.disabled = false;
+        input.disabled = false;
+        input.placeholder = MODULE_PLACEHOLDER;
+        loading.classList.remove('active');
+        stopQueuePolling();
+        input.focus();
+    }
+}
+
+function handleAlacarteResult(data) {
+    if (typeof data.alacarte_remaining !== 'undefined') {
+        if (data.alacarte_exhausted) {
+            HAS_ALACARTE = false;
+            PAYWALL_ACTIVE = true;
+            addMessage('system', '\u26A0\uFE0F Tu cr\u00e9dito A la Carta para este elemento se ha consumido. Para generar m\u00e1s productos, adquiere otro cr\u00e9dito o un plan PRO/PREMIUM.');
+            renderDocsSidebar();
+        } else {
+            addMessage('system', '\u2139\uFE0F Cr\u00e9dito A la Carta restante para este elemento: ' + data.alacarte_remaining);
+        }
+    }
+}
+
+document.getElementById('userInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+if (ELEMENT_NUM === 4) {
+    var auditFileInput = document.getElementById('audit-file');
+    if (auditFileInput) {
+        auditFileInput.addEventListener('change', async function() {
+            var files = this.files;
+            if (!files || files.length === 0) return;
+            var statusEl = document.getElementById('auditFileStatus');
+            var textarea = document.getElementById('audit-text');
+            var allText = textarea.value || '';
+            var processed = 0;
+            statusEl.style.display = 'inline';
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                statusEl.textContent = 'Extrayendo texto de ' + file.name + ' (' + (i+1) + '/' + files.length + ')...';
+                statusEl.style.color = '#d97706';
+                var formData = new FormData();
+                formData.append('file', file);
+                try {
+                    var resp = await fetch('/api/extract_text', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    var data = await resp.json();
+                    if (data.text) {
+                        allText += '\n\n===== DOCUMENTO: ' + file.name + ' =====\n' + data.text;
+                        processed++;
+                    } else {
+                        statusEl.textContent = (data.error || 'Error') + ' en ' + file.name;
+                        statusEl.style.color = '#dc2626';
+                    }
+                } catch (err) {
+                    statusEl.textContent = 'Error de conexión con ' + file.name;
+                    statusEl.style.color = '#dc2626';
+                }
+            }
+            textarea.value = allText.trim();
+            statusEl.textContent = processed + ' archivo(s) cargado(s) exitosamente.';
+            statusEl.style.color = '#16a34a';
+        });
+    }
+}
+
+async function ejecutarAutodiagnostico() {
+    var btn = document.getElementById('btnAuditInterno');
+    btn.disabled = true;
+    btn.textContent = 'Recopilando documentos...';
+    try {
+        var resp = await fetch('/api/collect_user_docs', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        var data = await resp.json();
+        if (data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            btn.textContent = '\u2705 Ejecutar Autodiagnóstico de mis Documentos';
+            return;
+        }
+        btn.textContent = 'Analizando contra 138 reactivos...';
+        var input = document.getElementById('userInput');
+        input.value = 'Ejecuta el Autodiagnóstico oficial EC0301 completo. Analiza los siguientes documentos generados por la plataforma contra los 138 reactivos del estándar. Evalúa cada reactivo individualmente (SI/NO) basándote exclusivamente en la evidencia textual. Documentos a auditar:\n\n' + data.text;
+        window._pendingIsAudit = true;
+        sendMessage();
+        btn.disabled = false;
+        btn.textContent = '\u2705 Ejecutar Autodiagnóstico de mis Documentos';
+    } catch (err) {
+        alert('Error de conexión al recopilar documentos.');
+        btn.disabled = false;
+        btn.textContent = '\u2705 Ejecutar Autodiagnóstico de mis Documentos';
+    }
+}
+
+function auditarProducto() {
+    var auditText = document.getElementById('audit-text');
+    if (!auditText || !auditText.value.trim()) {
+        alert('Debes pegar o cargar el contenido de TODOS tus productos antes de ejecutar el Autodiagnóstico.');
+        return;
+    }
+    var input = document.getElementById('userInput');
+    input.value = 'Ejecuta el Autodiagnóstico oficial EC0301 completo. Analiza los siguientes documentos externos contra los 138 reactivos del estándar. Si falta algún documento o apartado, marca automáticamente todos sus reactivos como NO CUMPLE (0). Evalúa cada reactivo individualmente (SI/NO). Documentos a auditar:\n\n' + auditText.value.trim();
+    window._pendingIsAudit = true;
+    sendMessage();
+}
+
+async function handleSpecsUpload(input) {
+    var files = input.files;
+    if (!files || files.length === 0) return;
+    if (files.length > 3) {
+        alert('Máximo 3 archivos de referencia permitidos.');
+        input.value = '';
+        return;
+    }
+    var ALLOWED_EXT = ['pdf','docx','txt','xlsx'];
+    for (var ck = 0; ck < files.length; ck++) {
+        var nm = (files[ck].name || '').toLowerCase();
+        var dot = nm.lastIndexOf('.');
+        var xt = dot >= 0 ? nm.slice(dot + 1) : '';
+        if (ALLOWED_EXT.indexOf(xt) === -1) {
+            alert('Formato no soportado: "' + files[ck].name.replace(/[<>&"\']/g,'') + '". Usa PDF, DOCX, TXT o XLSX.');
+            input.value = '';
+            return;
+        }
+    }
+    var statusEl = document.getElementById('specsUploadStatus');
+    var btn = document.getElementById('specsUploadBtn');
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Procesando archivos...'; statusEl.style.color = '#d97706'; }
+    if (btn) btn.style.opacity = '0.4';
+    var formData = new FormData();
+    formData.append('element_num', ELEMENT_NUM);
+    for (var i = 0; i < files.length; i++) {
+        if (files[i].size > 10 * 1024 * 1024) {
+            alert('El archivo "' + files[i].name.replace(/[<>&"']/g, '') + '" excede el máximo absoluto de 10MB. Reduce el archivo antes de subirlo.');
+            input.value = '';
+            if (statusEl) statusEl.style.display = 'none';
+            if (btn) btn.style.opacity = '1';
+            return;
+        }
+        formData.append('files', files[i]);
+    }
+    try {
+        var resp = await fetch('/api/upload_specs', { method: 'POST', body: formData });
+        var data = await resp.json();
+        if (data.success) {
+            uploadedSpecsFiles = data.filenames;
+            var bar = document.getElementById('specsBar');
+            var list = document.getElementById('specsFileList');
+            if (bar && list) {
+                list.textContent = data.filenames.join(', ');
+                bar.style.display = 'flex';
+            }
+            if (statusEl) { statusEl.textContent = data.filenames.length + ' archivo(s) cargado(s). La IA los considerará al generar.'; statusEl.style.color = '#16a34a'; }
+            if (btn) { btn.style.color = '#16a34a'; btn.style.opacity = '1'; }
+            addMessage('system', '📎 Archivos de referencia cargados: ' + data.filenames.join(', ') + '. La IA analizará este material para generar productos alineados a EC0301/EC0217.01.');
+            if (data.cocreation_eligible) {
+                triggerCocreationPreview();
+            }
+            if (data.truncation_info && data.truncation_info.tier === 'FREE' && data.truncation_info.events && data.truncation_info.events.length > 0) {
+                var ev = data.truncation_info.events[0];
+                var origChars = (ev.original_chars || 0).toLocaleString('es-MX');
+                var usedChars = (ev.used_chars || 0).toLocaleString('es-MX');
+                var proLimit = (data.truncation_info.pro_limit_chars || 15000).toLocaleString('es-MX');
+                var container = document.getElementById('chatMessages');
+                if (container) {
+                    var notice = document.createElement('div');
+                    notice.className = 'msg system';
+                    notice.style.cssText = 'background:#fef3c7;border-left:4px solid #d97706;padding:0.75rem 1rem;margin:0.5rem 0;border-radius:6px;font-size:0.92rem;line-height:1.5;';
+                    notice.innerHTML = '⚠️ <strong>Tu archivo "' + (ev.filename || '').replace(/[<>&"']/g, '') + '" tiene ' + origChars + ' caracteres.</strong> En tu plan FREE proceso los primeros <strong>' + usedChars + '</strong> caracteres (es una probada). PRO procesa archivos completos hasta <strong>' + proLimit + '</strong> caracteres por archivo y permite subir hasta 3 archivos. <a href="/precios" style="color:#7c3aed;font-weight:600;text-decoration:underline;" onclick="try{fetch(\'/api/beta/metric\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({type:\'cocreation_upsell_clicked\',value_int:' + (ev.original_chars || 0) + ',element_num:' + ELEMENT_NUM + '})});}catch(e){}">Ver Planes y Precios →</a>';
+                    container.appendChild(notice);
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        } else {
+            if (data.upsell && data.tier === 'FREE') {
+                if (statusEl) {
+                    statusEl.textContent = '';
+                    statusEl.style.color = '#dc2626';
+                    var lockSpan = document.createElement('span');
+                    lockSpan.textContent = '🔒 ' + (data.error || 'Error') + ' ';
+                    statusEl.appendChild(lockSpan);
+                    var upsellLink = document.createElement('a');
+                    upsellLink.href = '/precios';
+                    upsellLink.textContent = 'Ver Planes y Precios →';
+                    upsellLink.style.cssText = 'color:#7c3aed;font-weight:600;text-decoration:underline;';
+                    upsellLink.addEventListener('click', function() {
+                        try { fetch('/api/beta/metric', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'cocreation_upsell_clicked', value_int: 0, element_num: ELEMENT_NUM }) }); } catch(e) {}
+                    });
+                    statusEl.appendChild(upsellLink);
+                }
+            } else {
+                if (statusEl) { statusEl.textContent = data.error || 'Error al procesar'; statusEl.style.color = '#dc2626'; }
+            }
+            if (btn) btn.style.opacity = '1';
+        }
+    } catch(e) {
+        if (statusEl) { statusEl.textContent = 'Error de conexión'; statusEl.style.color = '#dc2626'; }
+        if (btn) btn.style.opacity = '1';
+    }
+    input.value = '';
+}
+
+var _cocreationInFlight = false;
+async function triggerCocreationPreview() {
+    if (_cocreationInFlight) return;
+    _cocreationInFlight = true;
+    var container = document.getElementById('chatMessages');
+    var loadingDiv = null;
+    if (container) {
+        loadingDiv = document.createElement('div');
+        loadingDiv.className = 'msg system';
+        loadingDiv.style.cssText = 'background:#f5f3ff;border-left:4px solid #7c3aed;padding:0.75rem 1rem;margin:0.5rem 0;border-radius:6px;color:#7c3aed;font-style:italic;';
+        loadingDiv.textContent = '🧠 Analizando tu archivo para co-crear contigo (puede tardar hasta un minuto)…';
+        container.appendChild(loadingDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+    try {
+        var resp = await fetch('/api/cocreation/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ element_num: ELEMENT_NUM })
+        });
+        var data = await resp.json();
+        if (loadingDiv && loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
+        if (data.success && data.preview_text) {
+            renderCocreationPreview(data.preview_text);
+        } else if (data.skipped_session || data.already_resolved) {
+            // silent
+        } else {
+            console.warn('Cocreation preview unavailable:', data.error || 'unknown');
+            var c1 = document.getElementById('chatMessages');
+            if (c1) {
+                var info1 = document.createElement('div');
+                info1.className = 'msg system';
+                info1.style.cssText = 'background:#fef9c3;border-left:4px solid #ca8a04;padding:0.6rem 0.85rem;margin:0.4rem 0;border-radius:6px;font-size:0.9rem;color:#854d0e;';
+                info1.textContent = 'No se pudo generar la vista previa de cocreación esta vez. Continúa normalmente: dime qué tema/curso quieres y procedo.';
+                c1.appendChild(info1);
+                c1.scrollTop = c1.scrollHeight;
+            }
+        }
+    } catch(e) {
+        if (loadingDiv && loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
+        console.warn('Cocreation preview fetch failed:', e);
+        var c2 = document.getElementById('chatMessages');
+        if (c2) {
+            var info2 = document.createElement('div');
+            info2.className = 'msg system';
+            info2.style.cssText = 'background:#fef9c3;border-left:4px solid #ca8a04;padding:0.6rem 0.85rem;margin:0.4rem 0;border-radius:6px;font-size:0.9rem;color:#854d0e;';
+            info2.textContent = 'No pude cargar la vista previa de cocreación (problema de conexión). Continúa normalmente: dime qué tema/curso quieres.';
+            c2.appendChild(info2);
+            c2.scrollTop = c2.scrollHeight;
+        }
+    } finally {
+        _cocreationInFlight = false;
+    }
+}
+
+function renderCocreationPreview(previewText) {
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'msg assistant cocreation-preview';
+    wrap.style.cssText = 'background:#faf5ff;border-left:4px solid #7c3aed;padding:1rem 1.25rem;margin:0.75rem 0 0.25rem;border-radius:8px;';
+    wrap.innerHTML = formatMarkdown(previewText);
+    container.appendChild(wrap);
+    chatLog.push({ type: 'message', role: 'assistant', content: previewText });
+    saveChat();
+    var actions = document.createElement('div');
+    actions.className = 'cocreation-actions';
+    actions.style.cssText = 'display:flex;gap:0.5rem;flex-wrap:wrap;margin:0 0 1rem;padding:0.75rem 1rem;background:#fafaff;border:1px solid #e5e7eb;border-radius:8px;';
+    var btnConfirm = document.createElement('button');
+    btnConfirm.type = 'button';
+    btnConfirm.textContent = '✓ Sí, esto es correcto — sigamos';
+    btnConfirm.style.cssText = 'background:#7c3aed;color:#fff;border:none;padding:0.65rem 1rem;border-radius:6px;cursor:pointer;font-weight:600;flex:1;min-width:200px;font-size:0.95rem;';
+    btnConfirm.addEventListener('click', function() { handleCocreationDecision('confirm', actions); });
+    var btnRefine = document.createElement('button');
+    btnRefine.type = 'button';
+    btnRefine.textContent = '✎ Refinar antes';
+    btnRefine.style.cssText = 'background:#fff;color:#7c3aed;border:1.5px solid #7c3aed;padding:0.65rem 1rem;border-radius:6px;cursor:pointer;font-weight:600;flex:1;min-width:140px;font-size:0.95rem;';
+    btnRefine.addEventListener('click', function() { handleCocreationDecision('refine', actions); });
+    var btnSkip = document.createElement('button');
+    btnSkip.type = 'button';
+    btnSkip.textContent = '⏭ Saltar revisión';
+    btnSkip.style.cssText = 'background:#fff;color:#6b7280;border:1px solid #d1d5db;padding:0.65rem 1rem;border-radius:6px;cursor:pointer;flex:1;min-width:140px;font-size:0.95rem;';
+    btnSkip.addEventListener('click', function() { handleCocreationDecision('skip', actions); });
+    actions.appendChild(btnConfirm);
+    actions.appendChild(btnRefine);
+    actions.appendChild(btnSkip);
+    container.appendChild(actions);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function handleCocreationDecision(decision, actionsEl) {
+    if (actionsEl) {
+        var btns = actionsEl.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) { btns[i].disabled = true; btns[i].style.opacity = '0.5'; btns[i].style.cursor = 'not-allowed'; }
+    }
+    try {
+        await fetch('/api/cocreation/decision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ element_num: ELEMENT_NUM, decision: decision })
+        });
+    } catch(e) { /* silent */ }
+    if (actionsEl) {
+        var statusDiv = document.createElement('div');
+        statusDiv.style.cssText = 'padding:0.5rem;font-weight:600;width:100%;text-align:center;';
+        if (decision === 'confirm') {
+            statusDiv.style.color = '#16a34a';
+            statusDiv.textContent = '✓ Listo. Ahora dime: ¿qué tema/curso quieres generar?';
+        } else if (decision === 'refine') {
+            statusDiv.style.color = '#7c3aed';
+            statusDiv.textContent = '✎ Escribe en el chat lo que quieres ajustar — adaptaré mi entendimiento.';
+        } else if (decision === 'skip') {
+            statusDiv.style.color = '#6b7280';
+            statusDiv.textContent = '⏭ Revisión saltada en esta sesión. Sigue como siempre.';
+        }
+        while (actionsEl.firstChild) actionsEl.removeChild(actionsEl.firstChild);
+        actionsEl.appendChild(statusDiv);
+    }
+    var input = document.getElementById('userInput');
+    if (input) input.focus();
+}
+
+async function clearSpecs() {
+    try {
+        await fetch('/api/clear_specs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ element_num: ELEMENT_NUM }) });
+    } catch(e) {}
+    uploadedSpecsFiles = [];
+    specsTextCache = '';
+    var bar = document.getElementById('specsBar');
+    if (bar) bar.style.display = 'none';
+    var statusEl = document.getElementById('specsUploadStatus');
+    if (statusEl) statusEl.style.display = 'none';
+    var btn = document.getElementById('specsUploadBtn');
+    if (btn) { btn.style.color = '#6b7280'; btn.style.opacity = '1'; }
+}
+</script>
+{% endblock %}

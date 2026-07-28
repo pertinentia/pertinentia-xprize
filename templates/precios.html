@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+{% block content %}
+{% set promo_param = (request.args.get('promo') or session_promo or '').lower() %}
+{% set is_promo = false %}
+{% set promo_pro = '?prefilled_promo_code=MAESTRO15&' if is_promo else '?' %}
+{% set promo_multi = '?prefilled_promo_code=MAESTRO15-MULTI&' if is_promo else '?' %}
+{% set promo_prem = '?prefilled_promo_code=MAESTRO15-PREM&' if is_promo else '?' %}
+{% set is_anon = not current_user.is_authenticated %}
+{% set reg_url = '/registro?promo=' + (promo_param or 'maestro15') %}
+
+{% if is_promo %}
+<div style="max-width:1100px;margin:0 auto 1.5rem;background:linear-gradient(135deg,#FA8072 0%,#e85a4a 100%);border-radius:16px;padding:1.6rem 1.4rem;color:#fff;text-align:center;box-shadow:0 10px 30px rgba(250,128,114,0.35);position:relative;overflow:hidden;">
+    <div style="font-size:0.78rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:0.95;margin-bottom:0.4rem;">&#127801; D&iacute;a del Maestro 2026</div>
+    <h2 style="font-size:1.85rem;font-weight:900;margin:0 0 0.5rem;line-height:1.15;">Hasta <span style="background:#fff;color:#e85a4a;padding:2px 12px;border-radius:8px;">70% OFF</span> en todos los planes</h2>
+    <p style="font-size:1rem;margin:0 0 0.85rem;opacity:0.97;">Tu regalo por formar a M&eacute;xico. El cup&oacute;n se aplica autom&aacute;ticamente al pagar.</p>
+    <div style="display:inline-block;background:rgba(0,0,0,0.22);padding:0.5rem 1.1rem;border-radius:30px;font-size:0.92rem;font-weight:700;">&#9201; Solo hasta el domingo 17 de mayo, 23:30 hrs CDMX</div>
+</div>
+{% endif %}
+
+<div class="page-header">
+    <h1>Planes y Precios</h1>
+    <p>Elige el plan que mejor se adapte a tu operaci&oacute;n</p>
+</div>
+
+<style>
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.2rem;
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+}
+.pricing-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    border: 2px solid #e5e7eb;
+    text-align: center;
+    position: relative;
+}
+.pricing-card-highlight {
+    border-color: #7c3aed;
+    box-shadow: 0 4px 24px rgba(124,58,237,0.13);
+}
+.pricing-badge {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 18px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.pricing-tier {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.pricing-price {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 0.25rem;
+}
+.pricing-price span {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+.pricing-period {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+}
+.pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    text-align: left;
+}
+.pricing-features li {
+    padding: 0.45rem 0;
+    font-size: 0.88rem;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+    padding-left: 1.5rem;
+    position: relative;
+}
+.pricing-features li::before {
+    content: "\2713";
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: 700;
+}
+.pricing-features li.pricing-disabled {
+    color: #d1d5db;
+    text-decoration: line-through;
+}
+.pricing-features li.pricing-disabled::before {
+    content: "\2717";
+    color: #d1d5db;
+}
+.pricing-btn {
+    display: block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    transition: opacity 0.2s;
+}
+.pricing-btn:hover { opacity: 0.85; }
+.pricing-btn-current {
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: default;
+}
+.pricing-btn-pro {
+    background: #FA8072;
+    color: #fff;
+}
+.pricing-btn-premium {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: #fff;
+}
+.pricing-btn-annual {
+    background: transparent;
+    border: 2px solid #7c3aed;
+    color: #7c3aed;
+    font-size: 0.82rem;
+    padding: 0.6rem 1rem;
+}
+.alacarte-section {
+    max-width: 960px;
+    margin: 0 auto 2rem;
+    text-align: center;
+}
+.alacarte-section h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 0.4rem;
+}
+.alacarte-section .alacarte-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+}
+.alacarte-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.2rem;
+}
+.alacarte-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.5rem 1.2rem;
+    border: 2px solid #e5e7eb;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.alacarte-card:hover {
+    border-color: #FA8072;
+    box-shadow: 0 2px 12px rgba(250,128,114,0.12);
+}
+.alacarte-element-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #FA8072;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.4rem;
+}
+.alacarte-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem;
+}
+.alacarte-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    text-align: left;
+}
+.alacarte-card ul li {
+    font-size: 0.82rem;
+    color: #374151;
+    padding: 0.3rem 0;
+    padding-left: 1.3rem;
+    position: relative;
+    border-bottom: 1px solid #f9fafb;
+}
+.alacarte-card ul li::before {
+    content: "\2713";
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+.alacarte-badge-pago {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-bottom: 0.7rem;
+}
+.alacarte-btn {
+    display: block;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    text-align: center;
+    background: #FA8072;
+    color: #fff;
+    transition: opacity 0.2s;
+}
+.alacarte-btn:hover { opacity: 0.85; }
+.alacarte-btn-owned {
+    background: #d1fae5;
+    color: #065f46;
+    cursor: default;
+}
+.alacarte-divider {
+    max-width: 960px;
+    margin: 2rem auto;
+    border: none;
+    border-top: 2px dashed #e5e7eb;
+}
+.pricing-features-toggle {
+    display: inline-block;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    margin: 0 0 1rem;
+    transition: background 0.15s, border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.pricing-features-toggle:hover { background: #f3f4f6; border-color: #d1d5db; }
+.pricing-features { transition: max-height 0.3s ease; }
+.pricing-features.collapsed {
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+}
+</style>
+
+<div class="pricing-grid">
+    <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-period">Para siempre</div>
+        <ul class="pricing-features">
+            <li>3 consultas con IA</li>
+            <li>Vista previa de contenido generado</li>
+            <li>Acceso al M&oacute;dulo 1 (Carta Descriptiva)</li>
+            <li>Carta Descriptiva en <strong>una sola pasada</strong> (&oacute;ptima para cursos de 2 a 3 horas)</li>
+            <li class="pricing-disabled">Carta Descriptiva en <strong>Alta Fidelidad</strong> (cursos largos &ge; 4 horas, generaci&oacute;n segmentada en 2 pasadas)</li>
+            <li>Archivos de referencia: <strong>1 archivo &middot; hasta 3 MB &middot; primeros 8,000 caracteres</strong> (probada)</li>
+            <li>Documentos con marca de agua Pertinentia</li>
+            <li>1 descarga gratuita de documento</li>
+            <li>Soporte est&aacute;ndar por correo (48-72 hrs)</li>
+            <li class="pricing-disabled">Generaci&oacute;n ilimitada</li>
+            <li class="pricing-disabled">Plantillas PRO (Corporativo, Acad&eacute;mico, Minimalista)</li>
+            <li class="pricing-disabled">Centro Evaluador IA</li>
+            <li class="pricing-disabled">Portafolio de evidencias</li>
+        </ul>
+        {% if is_anon %}
+        <a href="{{ reg_url }}" class="pricing-btn pricing-btn-pro" style="background:#6b7280;border-color:#6b7280;">Empezar Gratis &mdash; Crear Cuenta</a>
+        {% elif current_user.tier == 'FREE' %}
+        <span class="pricing-btn pricing-btn-current">Plan Actual</span>
+        {% endif %}
+    </div>
+
+    <div class="pricing-card">
+        <div class="pricing-tier">Pro &mdash; 1 Curso</div>
+        {% if is_promo %}
+        <div class="pricing-price"><span style="text-decoration:line-through;color:#9ca3af;font-size:1.3rem;">$999</span> <span style="color:#FA8072;">$299</span> <span>MXN</span></div>
+        <div class="pricing-period" style="color:#FA8072;font-weight:700;">&#127801; D&iacute;a del Maestro &middot; ahorra $700 (70% OFF)</div>
+        {% else %}
+        <div class="pricing-price">$999 <span>MXN</span></div>
+        <div class="pricing-period">Pago &uacute;nico &middot; Ilimitado para <strong>un</strong> curso</div>
+        {% endif %}
+        <ul class="pricing-features">
+            <li>Acceso completo a los 4 m&oacute;dulos EC0301</li>
+            <li>Consultas y generaci&oacute;n ilimitada para 1 curso</li>
+            <li>Archivos de referencia <strong>completos: 3 archivos &middot; hasta 5 MB c/u &middot; 15,000 caracteres c/u</strong></li>
+            <li>Descarga en .docx y .pptx editables</li>
+            <li>Marca Blanca (sin logotipos Pertinentia)</li>
+            <li>Plantillas PRO: Corporativo, Acad&eacute;mico, Minimalista</li>
+            <li><strong>Carta Descriptiva en Alta Fidelidad</strong> &mdash; cursos largos (&ge; 4 horas) generados en 2 pasadas para evitar compactaci&oacute;n de tiempos, entregada como <em>un solo documento Word editable</em></li>
+            <li><strong>Documento Maestro</strong> que asegura congruencia transversal en Carta, IECs, Manuales y Lista de Verificaci&oacute;n</li>
+            <li>Carta Descriptiva + Contrato de Aprendizaje</li>
+            <li>IECs completos para cada momento del curso</li>
+            <li>Manuales del Curso + Presentaci&oacute;n</li>
+            <li>Auto-diagn&oacute;stico EC0301</li>
+            <li>Soporte prioritario por correo (24 hrs)</li>
+            <li class="pricing-disabled">Centro Evaluador IA</li>
+        </ul>
+        <p style="font-size:0.78rem;color:#6b7280;margin:0.5rem 0 0.75rem;text-align:center;line-height:1.5;">&iquest;Tienes un enlace de afiliado? Obt&eacute;n PRO por solo <strong style="color:#16a34a;">$500 MXN</strong></p>
+        {% if is_anon %}
+        <a href="{{ reg_url }}" class="pricing-btn pricing-btn-pro">{% if is_promo %}&#127801; Crear cuenta y aprovechar &mdash; $299 MXN{% else %}Crear cuenta para adquirir PRO{% endif %}</a>
+        <p style="font-size:0.72rem;color:#6b7280;text-align:center;margin:0.4rem 0 0;">Registro gratis &middot; el cup&oacute;n se aplica en el siguiente paso</p>
+        {% elif current_user.tier == 'PRO' %}
+        <span class="pricing-btn pricing-btn-current">Plan Actual ({{ current_user.pro_courses_remaining }} cr&eacute;dito{{ 's' if current_user.pro_courses_remaining != 1 else '' }} restante{{ 's' if current_user.pro_courses_remaining != 1 else '' }})</span>
+        {% else %}
+        <a href="{{ stripe_links.PRO_PROJECT }}{{ promo_pro }}client_reference_id={{ current_user.id }}" class="pricing-btn pricing-btn-pro stripe-checkout-link" data-plan="PRO_PROJECT" target="_blank" rel="noopener">{% if is_promo %}&#127801; Aprovechar oferta &mdash; $299 MXN{% else %}Adquirir PRO &mdash; $999 MXN{% endif %}</a>
+        {% endif %}
+    </div>
+
+    <div class="pricing-card" style="border-color:#FA8072;border-width:3px;box-shadow:0 8px 24px rgba(250,128,114,0.18);position:relative;margin-top:14px;">
+        <div class="pricing-badge" style="background:linear-gradient(135deg,#FA8072,#e5604e);top:-26px;">&#11088; Mejor valor &mdash; Ahorra 57%</div>
+        <div class="pricing-tier" style="margin-top:0.3rem;">Pro &mdash; 5 Cursos</div>
+        {% if is_promo %}
+        <div class="pricing-price"><span style="text-decoration:line-through;color:#9ca3af;font-size:1.3rem;">$2,129</span> <span style="color:#FA8072;">$894</span> <span>MXN</span></div>
+        <div class="pricing-period" style="color:#FA8072;font-weight:700;">&#127801; D&iacute;a del Maestro &middot; ahorra $1,235 (58% OFF) &middot; $178.80 por curso</div>
+        {% else %}
+        <div class="pricing-price"><span style="text-decoration:line-through;color:#9ca3af;font-size:1.3rem;">$4,995</span> $2,129 <span>MXN</span></div>
+        <div class="pricing-period">Pago &uacute;nico &middot; 5 cr&eacute;ditos PRO</div>
+        {% endif %}
+        <div style="background:linear-gradient(135deg,#fff5f3,#ffe5dc);border:1.5px solid #FA8072;border-radius:10px;padding:0.7rem 0.85rem;margin:0.6rem 0 0.85rem;text-align:center;">
+            <div style="font-size:0.72rem;color:#9c4a3c;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:3px;">Equivale a</div>
+            <div style="font-size:1.35rem;color:#FA8072;font-weight:800;line-height:1;">$425.80 <span style="font-size:0.85rem;font-weight:600;">por curso</span></div>
+            <div style="font-size:0.75rem;color:#6b7280;margin-top:4px;"><span style="text-decoration:line-through;">$999/curso</span> en plan PRO 1 Curso</div>
+        </div>
+        <ul class="pricing-features">
+            <li>Todo lo incluido en PRO (incluye <strong>Carta en Alta Fidelidad</strong> y <strong>Documento Maestro</strong> en cada curso)</li>
+            <li><strong>5 cursos completos</strong> (uno activo a la vez)</li>
+            <li>Bot&oacute;n &ldquo;Iniciar Nuevo Curso&rdquo; al terminar cada uno</li>
+            <li>Ideal para instructores con m&uacute;ltiples temas</li>
+            <li>Sin caducidad: usa tus cr&eacute;ditos cuando quieras</li>
+            <li>Soporte prioritario por correo (24 hrs)</li>
+            <li class="pricing-disabled">Centro Evaluador IA</li>
+        </ul>
+        {% if is_anon %}
+        <a href="{{ reg_url }}" class="pricing-btn pricing-btn-pro">{% if is_promo %}&#127801; Crear cuenta y aprovechar &mdash; $894 MXN{% else %}Crear cuenta para adquirir 5 Cursos{% endif %}</a>
+        <p style="font-size:0.72rem;color:#6b7280;text-align:center;margin:0.4rem 0 0;">Registro gratis &middot; el cup&oacute;n se aplica en el siguiente paso</p>
+        {% elif current_user.tier == 'PRO' and (current_user.pro_courses_remaining or 0) >= 5 %}
+        <span class="pricing-btn pricing-btn-current">Cr&eacute;ditos activos: {{ current_user.pro_courses_remaining }}</span>
+        {% elif current_user.tier == 'PRO' %}
+        <a href="{{ stripe_links.PRO_MULTICURSO }}{{ promo_multi }}client_reference_id={{ current_user.id }}" class="pricing-btn pricing-btn-pro stripe-checkout-link" data-plan="PRO_MULTICURSO_TOPUP" target="_blank" rel="noopener">{% if is_promo %}&#127801; Sumar 5 cr&eacute;ditos m&aacute;s &mdash; $894 MXN{% else %}Sumar 5 cr&eacute;ditos m&aacute;s &mdash; $2,129 MXN{% endif %}</a>
+        <p style="font-size:0.72rem;color:#16a34a;font-weight:600;text-align:center;margin:0.4rem 0 0;">Tus {{ current_user.pro_courses_remaining or 0 }} cr&eacute;dito{{ 's' if (current_user.pro_courses_remaining or 0) != 1 else '' }} actual{{ 'es' if (current_user.pro_courses_remaining or 0) != 1 else '' }} se preservan</p>
+        {% else %}
+        <a href="{{ stripe_links.PRO_MULTICURSO }}{{ promo_multi }}client_reference_id={{ current_user.id }}" class="pricing-btn pricing-btn-pro stripe-checkout-link" data-plan="PRO_MULTICURSO" target="_blank" rel="noopener">{% if is_promo %}&#127801; Aprovechar oferta &mdash; $894 MXN{% else %}Adquirir 5 Cursos &mdash; $2,129 MXN{% endif %}</a>
+        <p style="font-size:0.72rem;color:#16a34a;font-weight:600;text-align:center;margin:0.4rem 0 0;">Ahorras $2,866 vs comprar 5 PRO sueltos</p>
+        {% endif %}
+    </div>
+
+    <div class="pricing-card pricing-card-highlight">
+        <div class="pricing-badge">Recomendado</div>
+        <div class="pricing-tier">Premium</div>
+        {% if is_promo %}
+        <div class="pricing-price"><span style="text-decoration:line-through;color:#9ca3af;font-size:1.3rem;">$2,997</span> <span style="color:#7c3aed;">$2,008</span> <span>MXN</span></div>
+        <div class="pricing-period" style="color:#7c3aed;font-weight:700;">&#127801; D&iacute;a del Maestro &middot; primer mes 33% OFF</div>
+        {% else %}
+        <div class="pricing-price">$2,997 <span>MXN</span></div>
+        <div class="pricing-period">Por mes</div>
+        {% endif %}
+        <ul class="pricing-features">
+            <li>Todo lo incluido en PRO (incluye <strong>Carta en Alta Fidelidad</strong> y <strong>Documento Maestro</strong>)</li>
+            <li>Descargas sin logotipos de Pertinentia (Marca Blanca)</li>
+            <li>Plantillas PRO: Corporativo, Acad&eacute;mico, Minimalista</li>
+            <li><strong>Plantilla de Referencia de Calidad Profesional</strong>: la IA usa como gu&iacute;a est&eacute;tica y estructural el documento maestro de planeaci&oacute;n del Curso de Curtido para elevar la calidad de tus Cartas Descriptivas</li>
+            <li>Centro Evaluador IA</li>
+            <li><strong>An&aacute;lisis IA de la transcripci&oacute;n de tu clase</strong> contra los reactivos del EC0217.01</li>
+            <li><strong>Dictamen por reactivos del portafolio</strong> (Competente / A&uacute;n No Competente)</li>
+            <li>Gesti&oacute;n de candidatos ilimitada</li>
+            <li>Portafolio de evidencias con IA</li>
+            <li>Plan de Evaluaci&oacute;n, Portadas, Servicio a Usuarios</li>
+            <li>Encuesta de Satisfacci&oacute;n con IA</li>
+            <li>Descarga de Instrumento EC0301</li>
+            <li>Atenci&oacute;n VIP directa por WhatsApp</li>
+        </ul>
+        {% if is_anon %}
+        <a href="{{ reg_url }}" class="pricing-btn pricing-btn-premium">{% if is_promo %}&#127801; Crear cuenta y aprovechar &mdash; $2,008 MXN primer mes{% else %}Crear cuenta para suscribirse{% endif %}</a>
+        <p style="font-size:0.72rem;color:#6b7280;text-align:center;margin:0.4rem 0 0;">Registro gratis &middot; el cup&oacute;n se aplica en el siguiente paso</p>
+        {% elif current_user.tier == 'PREMIUM' %}
+        <span class="pricing-btn pricing-btn-current">Plan Actual</span>
+        {% else %}
+        <a href="{{ stripe_links.PREMIUM_MONTHLY }}{{ promo_prem }}client_reference_id={{ current_user.id }}" class="pricing-btn pricing-btn-premium stripe-checkout-link" data-plan="PREMIUM_MONTHLY" target="_blank" rel="noopener">{% if is_promo %}&#127801; Aprovechar oferta &mdash; $2,008 MXN primer mes{% else %}Suscribirse Mensual &mdash; $2,997 MXN/mes{% endif %}</a>
+        <div style="margin:0.6rem 0 0.3rem;text-align:center;">
+            <span style="font-size:0.7rem;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.5px;">Ahorra 2 meses</span>
+        </div>
+        <a href="{{ stripe_links.PREMIUM_ANNUAL }}?client_reference_id={{ current_user.id }}" class="pricing-btn pricing-btn-annual stripe-checkout-link" data-plan="PREMIUM_ANNUAL" target="_blank" rel="noopener" style="border-width:2px;">
+            Anual &mdash; <span style="text-decoration:line-through;opacity:0.6;">$35,964</span> $29,970 MXN/a&ntilde;o
+        </a>
+        <p style="font-size:0.72rem;color:#16a34a;font-weight:600;text-align:center;margin:0.4rem 0 0;">Equivale a $2,497/mes &mdash; Ahorras $5,994/a&ntilde;o</p>
+        {% endif %}
+    </div>
+</div>
+
+<hr class="alacarte-divider">
+
+<div class="alacarte-section">
+    <h2>Precios a la Carta</h2>
+    <p class="alacarte-subtitle">Compra solo el elemento que necesitas. Pago &uacute;nico por una generaci&oacute;n completa con las especificaciones de tu curso.</p>
+
+    <div class="alacarte-grid">
+        <div class="alacarte-card">
+            <div class="alacarte-element-label">Elemento 1</div>
+            <h3>Carta Descriptiva + Contrato</h3>
+            <span class="alacarte-badge-pago">Pago &uacute;nico &middot; 1 generaci&oacute;n</span>
+            <ul>
+                <li>Carta Descriptiva completa</li>
+                <li>Contrato de Aprendizaje</li>
+                <li>Formato .docx editable</li>
+                <li>Sin marca de agua</li>
+                <li>Elecci&oacute;n de plantilla (Corporativo, Acad&eacute;mico, Minimalista)</li>
+            </ul>
+            {% if is_anon %}
+            <a href="{{ reg_url }}" class="alacarte-btn">Crear cuenta para comprar</a>
+            {% elif current_user.alacarte_e1 > 0 %}
+            <span class="alacarte-btn alacarte-btn-owned">Comprado ({{ current_user.alacarte_e1 }} restante{{ 's' if current_user.alacarte_e1 > 1 else '' }})</span>
+            {% else %}
+            <a href="{{ stripe_links.ALACARTE_E1 }}?client_reference_id={{ current_user.id }}" class="alacarte-btn" target="_blank" rel="noopener">Comprar Elemento 1</a>
+            {% endif %}
+        </div>
+
+        <div class="alacarte-card">
+            <div class="alacarte-element-label">Elemento 2</div>
+            <h3>IECs Completos</h3>
+            <span class="alacarte-badge-pago">Pago &uacute;nico &middot; 1 generaci&oacute;n</span>
+            <ul>
+                <li>IEC Diagn&oacute;stica</li>
+                <li>IEC Formativa</li>
+                <li>IEC Sumativa</li>
+                <li>IEC Satisfacci&oacute;n</li>
+                <li>Hojas de Respuestas</li>
+                <li>Formato .docx editable</li>
+                <li>Sin marca de agua</li>
+                <li>Elecci&oacute;n de plantilla</li>
+            </ul>
+            {% if is_anon %}
+            <a href="{{ reg_url }}" class="alacarte-btn">Crear cuenta para comprar</a>
+            {% elif current_user.alacarte_e2 > 0 %}
+            <span class="alacarte-btn alacarte-btn-owned">Comprado ({{ current_user.alacarte_e2 }} restante{{ 's' if current_user.alacarte_e2 > 1 else '' }})</span>
+            {% else %}
+            <a href="{{ stripe_links.ALACARTE_E2 }}?client_reference_id={{ current_user.id }}" class="alacarte-btn" target="_blank" rel="noopener">Comprar Elemento 2</a>
+            {% endif %}
+        </div>
+
+        <div class="alacarte-card">
+            <div class="alacarte-element-label">Elemento 3</div>
+            <h3>Manuales + Presentaci&oacute;n</h3>
+            <span class="alacarte-badge-pago">Pago &uacute;nico &middot; 1 generaci&oacute;n</span>
+            <ul>
+                <li>Manual del Instructor</li>
+                <li>Manual del Participante</li>
+                <li>Presentaci&oacute;n (.pptx)</li>
+                <li>Formatos editables</li>
+                <li>Sin marca de agua</li>
+                <li>Elecci&oacute;n de plantilla</li>
+            </ul>
+            {% if is_anon %}
+            <a href="{{ reg_url }}" class="alacarte-btn">Crear cuenta para comprar</a>
+            {% elif current_user.alacarte_e3 > 0 %}
+            <span class="alacarte-btn alacarte-btn-owned">Comprado ({{ current_user.alacarte_e3 }} restante{{ 's' if current_user.alacarte_e3 > 1 else '' }})</span>
+            {% else %}
+            <a href="{{ stripe_links.ALACARTE_E3 }}?client_reference_id={{ current_user.id }}" class="alacarte-btn" target="_blank" rel="noopener">Comprar Elemento 3</a>
+            {% endif %}
+        </div>
+
+        <div class="alacarte-card">
+            <div class="alacarte-element-label">Elemento 4</div>
+            <h3>Auto-diagn&oacute;stico EC0301</h3>
+            <span class="alacarte-badge-pago">Pago &uacute;nico &middot; 1 generaci&oacute;n</span>
+            <ul>
+                <li>Auto-diagn&oacute;stico completo</li>
+                <li>An&aacute;lisis detallado por elemento</li>
+                <li>Formato .docx editable</li>
+                <li>Sin marca de agua</li>
+                <li>Elecci&oacute;n de plantilla</li>
+            </ul>
+            {% if is_anon %}
+            <a href="{{ reg_url }}" class="alacarte-btn">Crear cuenta para comprar</a>
+            {% elif current_user.alacarte_e4 > 0 %}
+            <span class="alacarte-btn alacarte-btn-owned">Comprado ({{ current_user.alacarte_e4 }} restante{{ 's' if current_user.alacarte_e4 > 1 else '' }})</span>
+            {% else %}
+            <a href="{{ stripe_links.ALACARTE_E4 }}?client_reference_id={{ current_user.id }}" class="alacarte-btn" target="_blank" rel="noopener">Comprar Elemento 4</a>
+            {% endif %}
+        </div>
+
+        <div class="alacarte-card" id="alacarte-e5" style="border:2px solid #FA8072;">
+            <div class="alacarte-element-label" style="background:#FA8072;color:#fff;">Elemento 5 &middot; NUEVO</div>
+            <h3>Eval&uacute;a tu desempe&ntilde;o bajo el EC0217.01</h3>
+            <span class="alacarte-badge-pago">Pago &uacute;nico &middot; 1 evaluaci&oacute;n</span>
+            <ul>
+                <li>Pegas o subes la <strong>transcripci&oacute;n de tu clase</strong> (.txt o .docx)</li>
+                <li>An&aacute;lisis IA contra los reactivos del Instrumento EC0217.01</li>
+                <li>Cubre <strong>Momento 0</strong> (Lista de Verificaci&oacute;n) + Encuadre + Desarrollo + Cierre</li>
+                <li><strong>Dictamen global gratuito</strong> (Competente / Todav&iacute;a No Competente)</li>
+                <li><strong>Desglose reactivo por reactivo</strong> + PDF descargable</li>
+            </ul>
+            <p style="font-size:0.7rem;color:#6b7280;margin:0.3rem 0 0.6rem;line-height:1.35;"><em>Resultado generado por IA con fines de autodiagn&oacute;stico preciso. El dictamen oficial corresponde al Evaluador Acreditado.</em></p>
+            <div style="font-size:1.4rem;font-weight:700;color:#1a1a2e;text-align:center;margin:0.4rem 0;">$349 <span style="font-size:0.85rem;color:#6b7280;font-weight:500;">MXN</span></div>
+            {% if is_anon %}
+            <a href="{{ reg_url }}" class="alacarte-btn">Crear cuenta para comprar</a>
+            {% elif current_user.alacarte_e5 > 0 %}
+            <span class="alacarte-btn alacarte-btn-owned">Comprado ({{ current_user.alacarte_e5 }} restante{{ 's' if current_user.alacarte_e5 > 1 else '' }})</span>
+            <a href="/evaluar-mi-clase" class="alacarte-btn" style="margin-top:0.4rem;background:#FA8072;color:#fff;">Usar mi evaluaci&oacute;n &rarr;</a>
+            {% else %}
+            <a href="{{ stripe_links.ALACARTE_E5 }}?client_reference_id={{ current_user.id }}" class="alacarte-btn" style="background:#FA8072;color:#fff;" target="_blank" rel="noopener">Comprar Elemento 5 &mdash; $349</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var LABEL_SHOW = 'Ver caracter\u00edsticas \u25be';
+  var LABEL_HIDE = 'Ocultar caracter\u00edsticas \u25b4';
+  document.querySelectorAll('ul.pricing-features').forEach(function(ul) {
+    ul.classList.add('collapsed');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pricing-features-toggle';
+    btn.textContent = LABEL_SHOW;
+    btn.setAttribute('aria-expanded', 'false');
+    ul.parentNode.insertBefore(btn, ul);
+    btn.addEventListener('click', function() {
+      var nowCollapsed = ul.classList.toggle('collapsed');
+      btn.textContent = nowCollapsed ? LABEL_SHOW : LABEL_HIDE;
+      btn.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+    });
+  });
+})();
+</script>
+<script>
+(function() {
+  var TIER_AMOUNT_MXN = {
+    'PRO_AFFILIATE': 500, 'PRO_PROJECT': 999, 'PRO_MULTICURSO': 2129,
+    'PREMIUM_MONTHLY': 2997, 'PREMIUM_ANNUAL': 29970,
+    'ALACARTE_E1': 299, 'ALACARTE_E2': 399, 'ALACARTE_E3': 399, 'ALACARTE_E4': 249
+  };
+  document.querySelectorAll('a.stripe-checkout-link').forEach(function(a) {
+    a.addEventListener('click', function() {
+      try {
+        var plan = a.getAttribute('data-plan') || '';
+        var body = JSON.stringify({ plan: plan, href: a.href });
+        if (navigator.sendBeacon) {
+          var blob = new Blob([body], { type: 'application/json' });
+          navigator.sendBeacon('/api/track/stripe_click', blob);
+        } else {
+          fetch('/api/track/stripe_click', { method:'POST', headers:{'Content-Type':'application/json'}, body: body, keepalive: true });
+        }
+        if (typeof window.fbqTrack === 'function') {
+          window.fbqTrack('InitiateCheckout', {
+            content_name: plan || 'Pertinentia Plan',
+            content_category: 'subscription',
+            content_ids: [plan],
+            value: TIER_AMOUNT_MXN[plan] || 0,
+            currency: 'MXN'
+          });
+        }
+      } catch(e) {}
+    });
+  });
+})();
+</script>
+{% endblock %}
